@@ -32,14 +32,8 @@
     --danger: 0 78% 50%;
     --danger-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 4%;
-    --sidebar-primary: 0 78% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 100% 97%;
-    --sidebar-accent-foreground: 0 0% 4%;
-    --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 0 78% 50%;
+    --nav-pill-bg: 0 0% 100% / 0.85;
+    --nav-pill-border: 0 0% 88%;
 
     --font-display: 'Syne', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -47,6 +41,43 @@
 
     --shadow-card: 0 1px 3px rgba(0,0,0,0.05);
     --shadow-elevated: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-pill: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .dark {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 94%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 94%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 94%;
+    --primary: 0 78% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 94%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 53%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 94%;
+    --destructive: 0 78% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 17%;
+    --input: 0 0% 17%;
+    --ring: 0 78% 50%;
+
+    --success: 142 72% 37%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 78% 50%;
+    --danger-foreground: 0 0% 100%;
+
+    --nav-pill-bg: 0 0% 6% / 0.85;
+    --nav-pill-border: 0 0% 17%;
+
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+    --shadow-elevated: 0 4px 12px rgba(0,0,0,0.3);
+    --shadow-pill: 0 4px 24px rgba(0,0,0,0.2);
   }
 }
 
@@ -57,6 +88,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    transition: background-color 0.2s, color 0.2s;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -71,19 +105,26 @@
     font-family: var(--font-display);
   }
   .card-pharma {
-    @apply bg-card border border-border rounded-lg;
+    @apply bg-card border border-border rounded-xl;
     box-shadow: var(--shadow-card);
+    padding: 24px;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .card-pharma-compact {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: var(--shadow-card);
+    transition: background-color 0.2s, border-color 0.2s;
   }
   .btn-pharma {
-    @apply inline-flex items-center justify-center font-medium text-sm px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 transition-opacity;
+    @apply inline-flex items-center justify-center font-medium text-sm px-5 py-2.5 bg-primary text-primary-foreground hover:opacity-90 transition-all;
     border-radius: 4px;
   }
   .btn-pharma-outline {
-    @apply inline-flex items-center justify-center font-medium text-sm px-4 py-2 border border-border bg-card text-foreground hover:bg-accent transition-colors;
+    @apply inline-flex items-center justify-center font-medium text-sm px-5 py-2.5 border border-border bg-card text-foreground hover:bg-accent transition-all;
     border-radius: 4px;
   }
   .pill {
-    @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded;
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded;
   }
   .pill-otc {
     @apply pill bg-muted text-muted-foreground;
@@ -113,14 +154,82 @@
     background-color: hsl(45 93% 47% / 0.15);
     color: hsl(45 93% 30%);
   }
+  .dark .priority-medium {
+    background-color: hsl(45 93% 47% / 0.2);
+    color: hsl(45 93% 65%);
+  }
   .priority-routine {
     @apply pill bg-muted text-muted-foreground;
   }
-  .nav-item-active {
-    border-left: 3px solid hsl(var(--primary));
-    background-color: hsl(var(--sidebar-accent));
-  }
   .kpi-card {
-    @apply card-pharma p-5;
+    @apply card-pharma;
+  }
+  .kpi-number {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  /* Floating pill nav */
+  .nav-pill {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: hsl(var(--nav-pill-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--nav-pill-border));
+    border-radius: 999px;
+    padding: 6px 8px;
+    box-shadow: var(--shadow-pill);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .nav-pill-item {
+    @apply inline-flex items-center gap-2 text-sm font-medium transition-all;
+    padding: 8px 20px;
+    border-radius: 999px;
+    color: hsl(var(--muted-foreground));
+    text-decoration: none;
+  }
+  .nav-pill-item svg {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .nav-pill-item:hover {
+    color: hsl(var(--foreground));
+  }
+  .nav-pill-item:hover svg {
+    opacity: 1;
+  }
+  .nav-pill-item-active {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  .nav-pill-item-active svg {
+    opacity: 1;
+  }
+  .nav-pill-item-active:hover {
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* SLA pulse for critical */
+  @keyframes sla-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .sla-pulse {
+    animation: sla-pulse 1.5s ease-in-out infinite;
   }
 }
