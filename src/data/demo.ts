@@ -169,8 +169,8 @@ export const roleLabels: Record<import('@/types').UserRole, string> = {
 };
 
 export const roleDefaultPaths: Record<import('@/types').UserRole, string> = {
-  pharmacy_staff: '/queue',
-  sales_rep: '/incoming',
-  operations: '/pipeline',
-  procurement: '/queue',
+  pharmacy_staff: '/home',
+  sales_rep: '/home',
+  operations: '/home',
+  procurement: '/home',
 };

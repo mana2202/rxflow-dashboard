@@ -4,7 +4,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import PriorityQueue from "./pages/PriorityQueue";
 import PipelineBoard from "./pages/PipelineBoard";
 import OrderDetail from "./pages/OrderDetail";
@@ -12,12 +14,11 @@ import Analytics from "./pages/Analytics";
 import IncomingOrders from "./pages/IncomingOrders";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import { roleDefaultPaths } from "./data/demo";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { isLoggedIn, currentRole } = useAuth();
+  const { isLoggedIn } = useAuth();
 
   if (!isLoggedIn) {
     return (
@@ -29,7 +30,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={roleDefaultPaths[currentRole]} replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/home" element={<Home />} />
       <Route path="/queue" element={<PriorityQueue />} />
       <Route path="/pipeline" element={<PipelineBoard />} />
       <Route path="/orders/:id" element={<OrderDetail />} />
@@ -46,11 +48,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
