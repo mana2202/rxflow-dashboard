@@ -177,3 +177,103 @@ export const roleDefaultPaths: Record<import('@/types').UserRole, string> = {
   operations: '/home',
   procurement: '/home',
 };
+
+// ---------- Stock + Intake decoration ----------
+
+// Attach stock confidence + freshness to products (deterministic by index)
+const confidenceCycle: StockConfidence[] = ['High', 'High', 'Medium', 'High', 'Low', 'Medium'];
+demoProducts.forEach((prod, i) => {
+  prod.stockConfidence = confidenceCycle[i % confidenceCycle.length];
+  // Hours since last warehouse sync (lower confidence = older data)
+  prod.stockLastUpdatedHours =
+    prod.stockConfidence === 'High' ? 1 + (i % 3) :
+    prod.stockConfidence === 'Medium' ? 6 + (i % 4) :
+    18 + (i % 8);
+});
+
+export function getStockState(prod: Product): StockState {
+  if (prod.currentStock === 0) return 'Out of Stock';
+  if (prod.currentStock < prod.reorderPoint * 0.5) return 'At Risk';
+  if (prod.currentStock < prod.reorderPoint) return 'Low Stock';
+  return 'In Stock';
+}
+
+// Override channel diversity + intake metadata on a deterministic subset
+const channelOverrides: Record<string, OrderChannel> = {
+  'RX-2024-08837': 'WhatsApp',
+  'RX-2024-08831': 'WhatsApp',
+  'RX-2024-08833': 'Call',
+  'RX-2024-08823': 'Email',
+  'RX-2024-08815': 'WhatsApp',
+  'RX-2024-08821': 'Call',
+  'RX-2024-08795': 'Email',
+  'RX-2024-08783': 'WhatsApp',
+};
+
+demoOrders.forEach(o => {
+  if (channelOverrides[o.id]) o.channel = channelOverrides[o.id];
+});
+
+// Mark a few intake-stage orders as Needs Clarification with missing fields
+const clarifications: Record<string, string[]> = {
+  'RX-2024-08831': ['Delivery address', 'PO number'],
+  'RX-2024-08815': ['Dosage form (tablet/capsule)', 'Requested SKU ambiguous'],
+  'RX-2024-08795': ['Account contact phone'],
+  'RX-2024-08783': ['Delivery window'],
+};
+demoOrders.forEach(o => {
+  if (clarifications[o.id]) {
+    o.completeness = 'Needs Clarification';
+    o.missingFields = clarifications[o.id];
+  }
+});
+
+// Suspected duplicates (same account, near-identical order placed via different channel)
+const duplicatePairs: Array<[string, string]> = [
+  ['RX-2024-08823', 'RX-2024-08831'], // Smith / Walgreens — kidding, same items
+  ['RX-2024-08795', 'RX-2024-08837'],
+];
+duplicatePairs.forEach(([a, b]) => {
+  const oa = demoOrders.find(o => o.id === a);
+  const ob = demoOrders.find(o => o.id === b);
+  if (oa && ob) {
+    oa.duplicateOfId = ob.id;
+    ob.duplicateOfId = oa.id;
+  }
+});
+
+// Compliance enforcement examples
+const complianceOverrides: Record<string, { status: import('@/types').ComplianceStatus; reason?: string }> = {
+  'RX-2024-08841': { status: 'Pending' },
+  'RX-2024-08829': { status: 'Blocked', reason: 'DEA license expired (renewal pending)' },
+  'RX-2024-08813': { status: 'Passed' },
+  'RX-2024-08839': { status: 'Passed' }, // already in Picking
+};
+demoOrders.forEach(o => {
+  const c = complianceOverrides[o.id];
+  if (c) {
+    o.complianceStatus = c.status;
+    o.complianceBlockReason = c.reason;
+  }
+});
+
+// ---------- Pipeline stage mapping ----------
+export const pipelineStages: PipelineStage[] = ['Intake', 'Compliance Check', 'Fulfillment', 'Dispatch'];
+
+export const stageOfStatus: Record<OrderStatusT, PipelineStage> = {
+  'Incoming': 'Intake',
+  'Verified': 'Compliance Check',
+  'Compliance Check': 'Compliance Check',
+  'Picking': 'Fulfillment',
+  'Ready to Ship': 'Fulfillment',
+  'Shipped': 'Dispatch',
+};
+
+export function nextStatusInStage(stage: PipelineStage): OrderStatusT {
+  switch (stage) {
+    case 'Intake': return 'Verified';
+    case 'Compliance Check': return 'Picking';
+    case 'Fulfillment': return 'Ready to Ship';
+    case 'Dispatch': return 'Shipped';
+  }
+}
