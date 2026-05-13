@@ -1,4 +1,4 @@
-import type { User, Account, Product, Order, OrderLineItem, AuditEntry, SLABreach, DailyVolume } from '@/types';
+import type { User, Account, Product, Order, OrderLineItem, AuditEntry, SLABreach, DailyVolume, OrderChannel, StockState, StockConfidence, PipelineStage, OrderStatus as OrderStatusT } from '@/types';
 import { computePriorityScore } from '@/utils/priorityScore';
 import { format, subDays, addHours, subHours } from 'date-fns';
 
@@ -74,8 +74,8 @@ function makeAudit(orderId: string, hoursAgo: number, assignee: string, extra: s
 }
 
 function buildOrder(
-  id: string, accountId: string, status: OrderStatus, products: Product[], qtys: number[],
-  isUrgent: boolean, slaHoursRemaining: number, assignee: string, channel: string,
+  id: string, accountId: string, status: OrderStatusT, products: Product[], qtys: number[],
+  isUrgent: boolean, slaHoursRemaining: number, assignee: string, channel: OrderChannel,
   orderHoursAgo: number, extraAudit: string[] = []
 ): Order {
   const account = demoAccounts.find(a => a.id === accountId)!;
@@ -84,6 +84,7 @@ function buildOrder(
   const priority = computePriorityScore({ isUrgent, slaHoursRemaining, hasStockRisk, customerTier: account.tier });
   const user = demoUsers.find(u => u.name === assignee);
   const pType: import('@/types').ProductType = products.some(p => p.category === 'Controlled') ? 'Controlled' : products.some(p => p.category === 'Device') ? 'Device' : 'OTC';
+  const hasControlled = products.some(p => p.category === 'Controlled');
   return {
     id, accountId, account, productType: pType, items, itemCount: items.length,
     orderValue: items.reduce((s, i) => s + i.lineTotal, 0), status,
@@ -92,6 +93,8 @@ function buildOrder(
     slaDeadline: fmt(addHours(now, slaHoursRemaining)),
     slaHoursRemaining, isUrgent, hasStockRisk, priority,
     auditLog: makeAudit(id, orderHoursAgo, assignee, extraAudit), channel,
+    completeness: 'Complete',
+    complianceStatus: hasControlled ? 'Pending' : 'Not Required',
   };
 }
 
