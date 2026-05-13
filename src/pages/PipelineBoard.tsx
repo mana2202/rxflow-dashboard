@@ -6,7 +6,7 @@ import { ChannelBadge } from '@/components/ChannelBadge';
 import { ComplianceBadge } from '@/components/ComplianceBadge';
 import { StockBadge } from '@/components/StockBadge';
 import { PriorityTooltip } from '@/components/PriorityTooltip';
-import { demoOrders, getStockState, pipelineStages, stageOfStatus, nextStatusInStage } from '@/data/demo';
+import { demoOrders, getStockState, pipelineStages, stageOfStatus } from '@/data/demo';
 import { ArrowRight, ShieldX, AlertTriangle, Lock } from 'lucide-react';
 import type { Order, PipelineStage, OrderStatus } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -69,8 +69,6 @@ export default function PipelineBoard() {
       toast({ title: 'Move blocked', description: check.reason });
       return;
     }
-    const newStatus: OrderStatus = nextStatusInStage(target === 'Intake' ? 'Intake' : target);
-    // Move to first status of the target stage
     const firstStatusOfStage: Record<PipelineStage, OrderStatus> = {
       'Intake': 'Incoming',
       'Compliance Check': o.productType === 'Controlled' ? 'Compliance Check' : 'Verified',
@@ -78,7 +76,6 @@ export default function PipelineBoard() {
       'Dispatch': 'Shipped',
     };
     setOrders(prev => prev.map(x => x.id === o.id ? { ...x, status: firstStatusOfStage[target] } : x));
-    void newStatus;
   };
 
   const moveForward = (o: Order) => {
