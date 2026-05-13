@@ -3,8 +3,14 @@ import type { PriorityBreakdown } from '@/utils/priorityScore';
 export type UserRole = 'pharmacy_staff' | 'sales_rep' | 'operations' | 'procurement';
 export type ProductType = 'OTC' | 'Controlled' | 'Device';
 export type OrderStatus = 'Incoming' | 'Verified' | 'Picking' | 'Compliance Check' | 'Ready to Ship' | 'Shipped';
+export type PipelineStage = 'Intake' | 'Compliance Check' | 'Fulfillment' | 'Dispatch';
 export type CustomerTier = 1 | 2 | 3;
 export type DEASchedule = 'II' | 'III' | 'IV' | 'V';
+export type OrderChannel = 'WhatsApp' | 'Call' | 'Email' | 'EDI' | 'Portal' | 'Phone';
+export type Completeness = 'Complete' | 'Needs Clarification';
+export type StockState = 'In Stock' | 'Low Stock' | 'At Risk' | 'Out of Stock';
+export type StockConfidence = 'High' | 'Medium' | 'Low';
+export type ComplianceStatus = 'Not Required' | 'Pending' | 'Passed' | 'Blocked';
 
 export interface User {
   id: string;
@@ -34,6 +40,8 @@ export interface Product {
   reorderPoint: number;
   daysOfSupply: number;
   expiringWithin30Days: boolean;
+  stockLastUpdatedHours?: number;
+  stockConfidence?: StockConfidence;
 }
 
 export interface OrderLineItem {
@@ -66,7 +74,12 @@ export interface Order {
   hasStockRisk: boolean;
   priority: PriorityBreakdown;
   auditLog: AuditEntry[];
-  channel: string;
+  channel: OrderChannel;
+  completeness: Completeness;
+  missingFields?: string[];
+  duplicateOfId?: string;
+  complianceStatus: ComplianceStatus;
+  complianceBlockReason?: string;
 }
 
 export interface SLABreach {
