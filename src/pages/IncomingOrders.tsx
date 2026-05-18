@@ -278,6 +278,61 @@ export default function IncomingOrders() {
         onMerge={handleMerge}
         onKeepSeparate={handleKeepSeparate}
       />
+
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Incoming Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Account</Label>
+              <Select value={form.accountId} onValueChange={v => setForm(f => ({ ...f, accountId: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {demoAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name} (T{a.tier})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Channel</Label>
+              <Select value={form.channel} onValueChange={v => setForm(f => ({ ...f, channel: v as OrderChannel }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(['EDI','Portal','Phone','WhatsApp','Email'] as OrderChannel[]).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Product</Label>
+              <Select value={form.sku} onValueChange={v => setForm(f => ({ ...f, sku: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {demoProducts.map(p => <SelectItem key={p.sku} value={p.sku}>{p.sku} — {p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Quantity</Label>
+                <Input type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">SLA (hours)</Label>
+                <Input type="number" min={1} value={form.slaHours} onChange={e => setForm(f => ({ ...f, slaHours: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isUrgent} onChange={e => setForm(f => ({ ...f, isUrgent: e.target.checked }))} />
+              Mark as urgent (STAT)
+            </label>
+          </div>
+          <DialogFooter>
+            <button onClick={() => setNewOpen(false)} className="btn-pharma-outline text-sm">Cancel</button>
+            <button onClick={handleCreateOrder} className="btn-pharma text-sm">Create Order</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
