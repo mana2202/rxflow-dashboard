@@ -1,16 +1,18 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { ListOrdered, LayoutDashboard, ShoppingCart, BarChart2, Settings, Home, Sun, Moon, LogOut } from 'lucide-react';
+import { ListOrdered, LayoutDashboard, ShoppingCart, BarChart2, Settings, Home, Sun, Moon, LogOut, Boxes } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { RoleSwitcher } from './RoleSwitcher';
 import { cn } from '@/lib/utils';
+import type { UserRole } from '@/types';
 
-const navItems = [
+const navItems: { label: string; path: string; icon: any; roles?: UserRole[] }[] = [
   { label: 'Home', path: '/home', icon: Home },
   { label: 'Queue', path: '/queue', icon: ListOrdered },
   { label: 'Pipeline', path: '/pipeline', icon: LayoutDashboard },
   { label: 'Incoming', path: '/incoming', icon: ShoppingCart },
+  { label: 'Inventory', path: '/inventory', icon: Boxes, roles: ['operations'] },
   { label: 'Analytics', path: '/analytics', icon: BarChart2 },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
