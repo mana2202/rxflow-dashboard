@@ -9,10 +9,16 @@ import { StockBadge } from '@/components/StockBadge';
 import { ComplianceBadge } from '@/components/ComplianceBadge';
 import { DuplicateCompareDialog } from '@/components/DuplicateCompareDialog';
 import { PriorityTooltip } from '@/components/PriorityTooltip';
-import { demoOrders } from '@/data/demo';
-import { ArrowRight, AlertTriangle, GitMerge, Inbox, ShieldCheck, MessageSquare } from 'lucide-react';
-import type { Order } from '@/types';
+import { demoOrders, demoAccounts, demoProducts } from '@/data/demo';
+import { computePriorityScore } from '@/utils/priorityScore';
+import { ArrowRight, AlertTriangle, GitMerge, Inbox, ShieldCheck, MessageSquare, Plus, X } from 'lucide-react';
+import type { Order, OrderChannel, OrderLineItem, Product } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, addHours } from 'date-fns';
 
 type Filter = 'all' | 'clarify' | 'duplicate' | 'ready';
 
@@ -22,6 +28,15 @@ export default function IncomingOrders() {
   const [filter, setFilter] = useState<Filter>('all');
   const [dupOpen, setDupOpen] = useState(false);
   const [dupPair, setDupPair] = useState<[Order, Order] | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [form, setForm] = useState({
+    accountId: demoAccounts[0].id,
+    channel: 'Portal' as OrderChannel,
+    sku: demoProducts[0].sku,
+    qty: 10,
+    slaHours: 24,
+    isUrgent: false,
+  });
 
   const counts = useMemo(() => ({
     all: orders.length,
@@ -80,28 +95,79 @@ export default function IncomingOrders() {
     toast({ title: 'Kept separate', description: 'Both orders flagged as independent.' });
   };
 
+  const handleCreateOrder = () => {
+    const account = demoAccounts.find(a => a.id === form.accountId)!;
+    const product = demoProducts.find(p => p.sku === form.sku)!;
+    const qty = Math.max(1, Number(form.qty) || 1);
+    const item: OrderLineItem = {
+      product,
+      qtyOrdered: qty,
+      qtyAvailable: Math.min(qty, product.currentStock),
+      lineTotal: product.unitPrice * qty,
+    };
+    const pType = product.category === 'Controlled' ? 'Controlled' : product.category === 'Device' ? 'Device' : 'OTC';
+    const hasStockRisk = product.currentStock < product.reorderPoint || product.expiringWithin30Days;
+    const priority = computePriorityScore({
+      isUrgent: form.isUrgent,
+      slaHoursRemaining: form.slaHours,
+      hasStockRisk,
+      customerTier: account.tier,
+    });
+    const newId = `RX-2024-${String(Math.floor(90000 + Math.random() * 9999))}`;
+    const nowD = new Date();
+    const newOrder: Order = {
+      id: newId,
+      accountId: account.id,
+      account,
+      productType: pType,
+      items: [item],
+      itemCount: 1,
+      orderValue: item.lineTotal,
+      status: 'Incoming',
+      assignedTo: 'Sarah Chen',
+      orderDate: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"),
+      slaDeadline: format(addHours(nowD, form.slaHours), "yyyy-MM-dd'T'HH:mm:ss"),
+      slaHoursRemaining: form.slaHours,
+      isUrgent: form.isUrgent,
+      hasStockRisk,
+      priority,
+      auditLog: [{ timestamp: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"), action: `Order ${newId} created manually via ${form.channel}` }],
+      channel: form.channel,
+      completeness: 'Complete',
+      complianceStatus: product.category === 'Controlled' ? 'Pending' : 'Not Required',
+    };
+    setOrders(prev => [newOrder, ...prev]);
+    setNewOpen(false);
+    toast({ title: 'Order created', description: `${newId} added to intake.` });
+  };
+
   return (
     <AppLayout title="Incoming Orders">
-      {/* Filter chips */}
-      <div className="flex gap-2 mb-5 flex-wrap">
-        {([
-          ['all', 'All Intake', counts.all, Inbox],
-          ['clarify', 'Needs Clarification', counts.clarify, MessageSquare],
-          ['duplicate', 'Possible Duplicates', counts.duplicate, GitMerge],
-          ['ready', 'Ready to Route', counts.ready, ShieldCheck],
-        ] as const).map(([key, label, count, Icon]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`card-pharma-compact px-4 py-2 flex items-center gap-2 text-sm transition-all hover:shadow-elevated ${
-              filter === key ? 'ring-2 ring-primary' : ''
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-mono font-semibold">{count}</span>
-          </button>
-        ))}
+      {/* Top bar: filters + add button */}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {([
+            ['all', 'All Intake', counts.all, Inbox],
+            ['clarify', 'Needs Clarification', counts.clarify, MessageSquare],
+            ['duplicate', 'Possible Duplicates', counts.duplicate, GitMerge],
+            ['ready', 'Ready to Route', counts.ready, ShieldCheck],
+          ] as const).map(([key, label, count, Icon]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`card-pharma-compact px-4 py-2 flex items-center gap-2 text-sm transition-all hover:shadow-elevated ${
+                filter === key ? 'ring-2 ring-primary' : ''
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">{label}</span>
+              <span className="font-mono font-semibold">{count}</span>
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setNewOpen(true)} className="btn-pharma text-sm gap-1.5">
+          <Plus className="h-4 w-4" /> New Order
+        </button>
       </div>
 
       {/* Order cards */}
@@ -212,6 +278,61 @@ export default function IncomingOrders() {
         onMerge={handleMerge}
         onKeepSeparate={handleKeepSeparate}
       />
+
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Incoming Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Account</Label>
+              <Select value={form.accountId} onValueChange={v => setForm(f => ({ ...f, accountId: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {demoAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name} (T{a.tier})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Channel</Label>
+              <Select value={form.channel} onValueChange={v => setForm(f => ({ ...f, channel: v as OrderChannel }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(['EDI','Portal','Phone','WhatsApp','Email'] as OrderChannel[]).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Product</Label>
+              <Select value={form.sku} onValueChange={v => setForm(f => ({ ...f, sku: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {demoProducts.map(p => <SelectItem key={p.sku} value={p.sku}>{p.sku} — {p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Quantity</Label>
+                <Input type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">SLA (hours)</Label>
+                <Input type="number" min={1} value={form.slaHours} onChange={e => setForm(f => ({ ...f, slaHours: Number(e.target.value) }))} />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isUrgent} onChange={e => setForm(f => ({ ...f, isUrgent: e.target.checked }))} />
+              Mark as urgent (STAT)
+            </label>
+          </div>
+          <DialogFooter>
+            <button onClick={() => setNewOpen(false)} className="btn-pharma-outline text-sm">Cancel</button>
+            <button onClick={handleCreateOrder} className="btn-pharma text-sm">Create Order</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

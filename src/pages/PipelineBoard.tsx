@@ -92,7 +92,7 @@ export default function PipelineBoard() {
 
   return (
     <AppLayout title="Order Pipeline">
-      <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+      <div className="grid grid-cols-4 gap-3 pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
         {pipelineStages.map(stage => {
           const colOrders = ordersByStage[stage];
           const totalValue = colOrders.reduce((s, o) => s + o.orderValue, 0);
@@ -100,7 +100,7 @@ export default function PipelineBoard() {
           return (
             <div
               key={stage}
-              className="flex-shrink-0 w-80 flex flex-col"
+              className="min-w-0 flex flex-col"
               onDragOver={e => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
