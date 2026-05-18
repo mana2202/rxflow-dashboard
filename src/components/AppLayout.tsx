@@ -53,7 +53,7 @@ export function AppLayout({ children, title, actions }: { children: ReactNode; t
 
       {/* Floating pill nav */}
       <nav className="nav-pill">
-        {navItems.map(item => {
+        {visibleNavItems.map(item => {
           const active = item.path === '/home'
             ? pathname === '/home' || pathname === '/'
             : pathname.startsWith(item.path);
