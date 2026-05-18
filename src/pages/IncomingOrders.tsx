@@ -28,6 +28,15 @@ export default function IncomingOrders() {
   const [filter, setFilter] = useState<Filter>('all');
   const [dupOpen, setDupOpen] = useState(false);
   const [dupPair, setDupPair] = useState<[Order, Order] | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [form, setForm] = useState({
+    accountId: demoAccounts[0].id,
+    channel: 'Portal' as OrderChannel,
+    sku: demoProducts[0].sku,
+    qty: 10,
+    slaHours: 24,
+    isUrgent: false,
+  });
 
   const counts = useMemo(() => ({
     all: orders.length,
