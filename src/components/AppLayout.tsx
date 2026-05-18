@@ -19,8 +19,9 @@ const navItems: { label: string; path: string; icon: any; roles?: UserRole[] }[]
 
 export function AppLayout({ children, title, actions }: { children: ReactNode; title?: string; actions?: ReactNode }) {
   const { pathname } = useLocation();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, currentRole, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const visibleNavItems = navItems.filter(i => !i.roles || i.roles.includes(currentRole));
 
   return (
     <div className="min-h-screen w-full bg-background">
