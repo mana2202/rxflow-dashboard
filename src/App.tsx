@@ -13,6 +13,7 @@ import OrderDetail from "./pages/OrderDetail";
 import Analytics from "./pages/Analytics";
 import IncomingOrders from "./pages/IncomingOrders";
 import SettingsPage from "./pages/Settings";
+import InventoryDetails from "./pages/InventoryDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function AppRoutes() {
       <Route path="/incoming" element={<IncomingOrders />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/inventory" element={<InventoryDetails />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
