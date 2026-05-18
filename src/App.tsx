@@ -39,6 +39,7 @@ function AppRoutes() {
       <Route path="/incoming" element={<IncomingOrders />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/inventory" element={<InventoryDetails />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
