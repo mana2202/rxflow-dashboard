@@ -95,28 +95,79 @@ export default function IncomingOrders() {
     toast({ title: 'Kept separate', description: 'Both orders flagged as independent.' });
   };
 
+  const handleCreateOrder = () => {
+    const account = demoAccounts.find(a => a.id === form.accountId)!;
+    const product = demoProducts.find(p => p.sku === form.sku)!;
+    const qty = Math.max(1, Number(form.qty) || 1);
+    const item: OrderLineItem = {
+      product,
+      qtyOrdered: qty,
+      qtyAvailable: Math.min(qty, product.currentStock),
+      lineTotal: product.unitPrice * qty,
+    };
+    const pType = product.category === 'Controlled' ? 'Controlled' : product.category === 'Device' ? 'Device' : 'OTC';
+    const hasStockRisk = product.currentStock < product.reorderPoint || product.expiringWithin30Days;
+    const priority = computePriorityScore({
+      isUrgent: form.isUrgent,
+      slaHoursRemaining: form.slaHours,
+      hasStockRisk,
+      customerTier: account.tier,
+    });
+    const newId = `RX-2024-${String(Math.floor(90000 + Math.random() * 9999))}`;
+    const nowD = new Date();
+    const newOrder: Order = {
+      id: newId,
+      accountId: account.id,
+      account,
+      productType: pType,
+      items: [item],
+      itemCount: 1,
+      orderValue: item.lineTotal,
+      status: 'Incoming',
+      assignedTo: 'Sarah Chen',
+      orderDate: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"),
+      slaDeadline: format(addHours(nowD, form.slaHours), "yyyy-MM-dd'T'HH:mm:ss"),
+      slaHoursRemaining: form.slaHours,
+      isUrgent: form.isUrgent,
+      hasStockRisk,
+      priority,
+      auditLog: [{ timestamp: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"), action: `Order ${newId} created manually via ${form.channel}` }],
+      channel: form.channel,
+      completeness: 'Complete',
+      complianceStatus: product.category === 'Controlled' ? 'Pending' : 'Not Required',
+    };
+    setOrders(prev => [newOrder, ...prev]);
+    setNewOpen(false);
+    toast({ title: 'Order created', description: `${newId} added to intake.` });
+  };
+
   return (
     <AppLayout title="Incoming Orders">
-      {/* Filter chips */}
-      <div className="flex gap-2 mb-5 flex-wrap">
-        {([
-          ['all', 'All Intake', counts.all, Inbox],
-          ['clarify', 'Needs Clarification', counts.clarify, MessageSquare],
-          ['duplicate', 'Possible Duplicates', counts.duplicate, GitMerge],
-          ['ready', 'Ready to Route', counts.ready, ShieldCheck],
-        ] as const).map(([key, label, count, Icon]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`card-pharma-compact px-4 py-2 flex items-center gap-2 text-sm transition-all hover:shadow-elevated ${
-              filter === key ? 'ring-2 ring-primary' : ''
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-mono font-semibold">{count}</span>
-          </button>
-        ))}
+      {/* Top bar: filters + add button */}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {([
+            ['all', 'All Intake', counts.all, Inbox],
+            ['clarify', 'Needs Clarification', counts.clarify, MessageSquare],
+            ['duplicate', 'Possible Duplicates', counts.duplicate, GitMerge],
+            ['ready', 'Ready to Route', counts.ready, ShieldCheck],
+          ] as const).map(([key, label, count, Icon]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`card-pharma-compact px-4 py-2 flex items-center gap-2 text-sm transition-all hover:shadow-elevated ${
+                filter === key ? 'ring-2 ring-primary' : ''
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">{label}</span>
+              <span className="font-mono font-semibold">{count}</span>
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setNewOpen(true)} className="btn-pharma text-sm gap-1.5">
+          <Plus className="h-4 w-4" /> New Order
+        </button>
       </div>
 
       {/* Order cards */}
