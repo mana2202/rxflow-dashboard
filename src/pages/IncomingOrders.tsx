@@ -9,10 +9,16 @@ import { StockBadge } from '@/components/StockBadge';
 import { ComplianceBadge } from '@/components/ComplianceBadge';
 import { DuplicateCompareDialog } from '@/components/DuplicateCompareDialog';
 import { PriorityTooltip } from '@/components/PriorityTooltip';
-import { demoOrders } from '@/data/demo';
-import { ArrowRight, AlertTriangle, GitMerge, Inbox, ShieldCheck, MessageSquare } from 'lucide-react';
-import type { Order } from '@/types';
+import { demoOrders, demoAccounts, demoProducts } from '@/data/demo';
+import { computePriorityScore } from '@/utils/priorityScore';
+import { ArrowRight, AlertTriangle, GitMerge, Inbox, ShieldCheck, MessageSquare, Plus, X } from 'lucide-react';
+import type { Order, OrderChannel, OrderLineItem, Product } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, addHours } from 'date-fns';
 
 type Filter = 'all' | 'clarify' | 'duplicate' | 'ready';
 
