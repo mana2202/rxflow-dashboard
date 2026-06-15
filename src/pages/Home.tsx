@@ -7,9 +7,20 @@ import { StatusPill } from '@/components/StatusPill';
 import { SlaCountdown } from '@/components/SlaCountdown';
 import { demoOrders } from '@/data/demo';
 import { useAuth } from '@/context/AuthContext';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import type { OrderStatus } from '@/types';
 
 const stageActions: Record<OrderStatus, string> = {
+  'Incoming': 'Review Order',
+  'Verified': 'Start Picking',
+  'Picking': 'Complete Picking',
+  'Compliance Check': 'Begin Compliance Check',
+  'Ready to Ship': 'Confirm Shipment',
+  'Shipped': 'View Details',
+};
+
+// Demo pickup data
+const pickups = [
   { hauler: 'FedEx Express', zone: 'NE-01', time: '10:30 AM', orderCount: 8, confirmed: true },
   { hauler: 'UPS Medical', zone: 'NE-02', time: '12:00 PM', orderCount: 5, confirmed: true },
   { hauler: 'FedEx Ground', zone: 'NE-03', time: '2:30 PM', orderCount: 12, confirmed: false },
@@ -36,31 +47,6 @@ export default function Home() {
       .sort((a, b) => b.priority.total - a.priority.total)
       .slice(0, 8);
   }, [currentUser.name]);
-
-  const stageCounts = useMemo(() => {
-    const counts: Record<OrderStatus, number> = {} as any;
-    pipelineStages.forEach(s => { counts[s] = 0; });
-    demoOrders.forEach(o => { counts[o.status]++; });
-    return counts;
-  }, []);
-
-  // Find bottleneck stage (highest count relative to neighbors)
-  const bottleneckStage = useMemo(() => {
-    let maxRatio = 0;
-    let bottleneck = '';
-    pipelineStages.forEach((stage, i) => {
-      const count = stageCounts[stage];
-      const prev = i > 0 ? stageCounts[pipelineStages[i - 1]] : count;
-      const next = i < pipelineStages.length - 1 ? stageCounts[pipelineStages[i + 1]] : count;
-      const avg = (prev + next) / 2;
-      const ratio = avg > 0 ? count / avg : count;
-      if (ratio > maxRatio && stage !== 'Shipped') {
-        maxRatio = ratio;
-        bottleneck = stage;
-      }
-    });
-    return bottleneck;
-  }, [stageCounts]);
 
   return (
     <AppLayout>
@@ -146,37 +132,6 @@ export default function Home() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      {/* Section 3 — Pipeline Snapshot */}
-      <section>
-        <h2 className="section-heading">Pipeline Snapshot</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {pipelineStages.map((stage, i) => {
-            const count = stageCounts[stage];
-            const isBottleneck = stage === bottleneckStage;
-            return (
-              <div key={stage} className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate('/pipeline')}
-                  className={`card-pharma-compact px-4 py-3 flex items-center gap-2 text-sm font-medium transition-all hover:shadow-elevated cursor-pointer ${
-                    isBottleneck ? 'ring-2 ring-warning bg-warning/5' : ''
-                  }`}
-                >
-                  {stage}
-                  <span className={`font-mono text-xs px-2 py-0.5 rounded-full ${
-                    isBottleneck ? 'bg-warning text-warning-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-                {i < pipelineStages.length - 1 && (
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                )}
-              </div>
-            );
-          })}
         </div>
       </section>
     </AppLayout>
