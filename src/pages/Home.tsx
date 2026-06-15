@@ -7,31 +7,9 @@ import { StatusPill } from '@/components/StatusPill';
 import { SlaCountdown } from '@/components/SlaCountdown';
 import { demoOrders } from '@/data/demo';
 import { useAuth } from '@/context/AuthContext';
-import { CheckCircle, ArrowRight } from 'lucide-react';
 import type { OrderStatus } from '@/types';
 
 const stageActions: Record<OrderStatus, string> = {
-  'Incoming': 'Review Order',
-  'Verified': 'Start Picking',
-  'Picking': 'Complete Picking',
-  'Compliance Check': 'Begin Compliance Check',
-  'Ready to Ship': 'Confirm Shipment',
-  'Shipped': 'View Details',
-};
-
-const stageColors: Record<OrderStatus, string> = {
-  'Incoming': 'border-l-muted-foreground',
-  'Verified': 'border-l-blue-500',
-  'Picking': 'border-l-amber-500',
-  'Compliance Check': 'border-l-red-500',
-  'Ready to Ship': 'border-l-green-500',
-  'Shipped': 'border-l-teal-500',
-};
-
-const pipelineStages: OrderStatus[] = ['Incoming', 'Verified', 'Picking', 'Compliance Check', 'Ready to Ship', 'Shipped'];
-
-// Demo pickup data
-const pickups = [
   { hauler: 'FedEx Express', zone: 'NE-01', time: '10:30 AM', orderCount: 8, confirmed: true },
   { hauler: 'UPS Medical', zone: 'NE-02', time: '12:00 PM', orderCount: 5, confirmed: true },
   { hauler: 'FedEx Ground', zone: 'NE-03', time: '2:30 PM', orderCount: 12, confirmed: false },
