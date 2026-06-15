@@ -95,11 +95,26 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.3" },
         },
+        "score-ring": {
+          from: { strokeDashoffset: "var(--ring-from)" },
+          to:   { strokeDashoffset: "var(--ring-to)" },
+        },
+        "aging-pulse": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%":       { opacity: "0.5", transform: "scale(1.3)" },
+        },
+        "hardstop-in": {
+          from: { opacity: "0", transform: "translateY(16px) scale(0.97)" },
+          to:   { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-dot": "pulse_dot 2s ease-in-out infinite",
+        "score-ring": "score-ring 0.6s cubic-bezier(0.4,0,0.2,1) forwards",
+        "aging-pulse": "aging-pulse 1.5s ease-in-out infinite",
+        "hardstop-in": "hardstop-in 0.25s cubic-bezier(0.34,1.56,0.64,1)",
       },
     },
   },

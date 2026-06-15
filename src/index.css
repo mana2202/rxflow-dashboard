@@ -232,4 +232,25 @@
   .sla-pulse {
     animation: sla-pulse 1.5s ease-in-out infinite;
   }
+
+  /* Design token: stage badge base */
+  .stage-badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium;
+  }
+
+  /* Motion: entrance fade-up for cards */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.3s ease forwards;
+  }
+
+  /* Design token alignment: mono chip */
+  .mono-chip {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+  }
 }

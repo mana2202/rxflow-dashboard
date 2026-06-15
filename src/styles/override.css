@@ -1,0 +1,58 @@
+/* Design-system overrides — applied after Tailwind base */
+
+/* Sharper focus rings to match pharma precision brand */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Table row hover — subtle tint */
+.rxflow-table tbody tr:hover td {
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+/* Priority badge ring pulse for CRITICAL rows */
+.row-critical {
+  position: relative;
+}
+.row-critical::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-left: 3px solid hsl(var(--danger));
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Compact scrollbar for side panels */
+.rxflow-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.rxflow-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.rxflow-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 2px;
+}
+
+/* Override shadcn badge to use design tokens */
+.badge-token {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+/* Transition smoothing for theme switch */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+/* But not transforms / opacity — let components own those */
+.no-theme-transition,
+.no-theme-transition *,
+.no-theme-transition *::before,
+.no-theme-transition *::after {
+  transition: none !important;
+}
