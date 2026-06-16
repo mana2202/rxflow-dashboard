@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import SalesDashboard from "./pages/SalesDashboard";
+import InventoryDashboard from "./pages/InventoryDashboard";
 import PriorityQueue from "./pages/PriorityQueue";
 import PipelineBoard from "./pages/PipelineBoard";
 import OrderDetail from "./pages/OrderDetail";
@@ -17,6 +19,13 @@ import InventoryDetails from "./pages/InventoryDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function RoleHome() {
+  const { currentRole } = useAuth();
+  if (currentRole === 'sales_rep') return <SalesDashboard />;
+  if (currentRole === 'procurement') return <InventoryDashboard />;
+  return <Home />;
+}
 
 function AppRoutes() {
   const { isLoggedIn } = useAuth();
@@ -32,7 +41,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
-      <Route path="/home" element={<Home />} />
+      <Route path="/home" element={<RoleHome />} />
       <Route path="/queue" element={<PriorityQueue />} />
       <Route path="/pipeline" element={<PipelineBoard />} />
       <Route path="/orders/:id" element={<OrderDetail />} />

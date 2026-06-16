@@ -1,0 +1,31 @@
+.age-fresh    { border-left: 4px solid #E2E4E9; background-color: #FFFFFF; }
+.age-warning  { border-left: 4px solid #D4900A; background-color: #FFFDF7; }
+.age-critical { border-left: 4px solid #C3332B; background-color: #FFF8F7; }
+.age-critical .aging-timer { animation: aging-pulse 2s ease-in-out infinite; }
+
+@keyframes aging-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes aging-to-warning {
+  0%   { border-left-width:4px; border-left-color:#E2E4E9; background-color:#ffffff; }
+  25%  { border-left-width:6px; border-left-color:#D4900A; background-color:#FFFDF7; }
+  60%  { border-left-width:5px; }
+  100% { border-left-width:4px; border-left-color:#D4900A; background-color:#FFFDF7; }
+}
+.animate-aging-to-warning { animation: aging-to-warning 400ms cubic-bezier(0.22,1,0.36,1) forwards; }
+
+@keyframes aging-to-critical {
+  0%   { border-left-width:4px; border-left-color:#C3332B; background-color:#ffffff; }
+  12%  { border-left-width:10px; background-color:#FDEAE9; }
+  30%  { border-left-width:12px; background-color:#FDEAE9; }
+  55%  { border-left-width:6px;  background-color:#FFF8F7; }
+  100% { border-left-width:4px; border-left-color:#C3332B; background-color:#FFF8F7; }
+}
+.animate-aging-to-critical { animation: aging-to-critical 320ms cubic-bezier(0.22,1,0.36,1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aging-to-warning, .animate-aging-to-critical { animation: none; }
+  .age-critical .aging-timer { animation: none; }
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
-import { PriorityBadge } from '@/components/PriorityBadge';
+import { PriorityBadge, PriorityScore } from '@/components/PriorityBadge';
 import { ProductTypePill } from '@/components/ProductTypePill';
 import { StatusPill } from '@/components/StatusPill';
 import { SlaCountdown } from '@/components/SlaCountdown';
@@ -10,10 +10,15 @@ import { ChannelBadge } from '@/components/ChannelBadge';
 import { CompletenessTag } from '@/components/CompletenessTag';
 import { ComplianceBadge } from '@/components/ComplianceBadge';
 import { StockBadge, StockConfidenceChip } from '@/components/StockBadge';
+import { ComplianceHardStop } from '@/components/ComplianceHardStop';
+import { PriorityOverridePanel, type OverrideResult } from '@/components/PriorityOverridePanel';
 import { demoOrders, getStockState } from '@/data/demo';
-import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Split, Clock, ShieldX, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Split, Clock, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
+import type { Order, AuditEntry } from '@/types';
+import type { PriorityBreakdown } from '@/utils/priorityScore';
 
 const nextStageLabel: Record<string, string> = {
   'Incoming': 'Move to Verified',
@@ -27,17 +32,22 @@ const nextStageLabel: Record<string, string> = {
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const order = demoOrders.find(o => o.id === id);
-  const [activityOpen, setActivityOpen] = useState(false);
+  const { currentUser } = useAuth();
+  const baseOrder = demoOrders.find(o => o.id === id);
 
-  if (!order) return (
+  const [order, setOrder] = useState<Order | undefined>(baseOrder);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>(baseOrder?.auditLog ?? []);
+  const [priority, setPriority] = useState<PriorityBreakdown | undefined>(baseOrder?.priority);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [showOverride, setShowOverride] = useState(false);
+
+  if (!order || !priority) return (
     <AppLayout>
       <p className="text-muted-foreground">Order not found.</p>
     </AppLayout>
   );
 
   const hasControlled = order.items.some(i => i.product.category === 'Controlled');
-  const breakdown = order.priority;
   const partial = order.items.some(i => i.qtyAvailable < i.qtyOrdered);
   const oldestStockHours = Math.max(...order.items.map(i => i.product.stockLastUpdatedHours ?? 0));
   const minConfidence: any = order.items.reduce((acc, i) => {
@@ -47,20 +57,36 @@ export default function OrderDetail() {
   }, 'High' as 'High' | 'Medium' | 'Low');
   const fulfillmentBlocked = hasControlled && order.complianceStatus !== 'Passed';
 
+  const complianceIssue = order.complianceStatus === 'Blocked'
+    ? (order.complianceBlockReason ?? 'Compliance check failed')
+    : fulfillmentBlocked && order.complianceStatus === 'Pending'
+      ? 'DEA review pending — controlled substance requires cleared compliance before fulfillment.'
+      : null;
+
+  function handleOverrideConfirm(result: OverrideResult) {
+    const entry: AuditEntry = {
+      timestamp: result.overriddenAt,
+      action: `Priority override by ${result.overriddenBy}: ${result.previousScore} → ${result.newScore} (${result.direction}, ${result.reasonCode})`,
+    };
+    setAuditLog(prev => [...prev, entry]);
+    setPriority(prev => prev ? { ...prev, total: result.newScore, level: result.newLevel } : prev);
+    setShowOverride(false);
+    toast({ title: 'Priority updated', description: `Score updated to ${result.newScore} · ${result.newLevel}` });
+  }
+
   return (
     <AppLayout>
-      {/* Back button */}
       <button onClick={() => navigate(-1)} className="btn-pharma-outline gap-1.5 text-xs mb-4">
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
 
-      {/* Order header bar */}
+      {/* Order header */}
       <div className="card-pharma mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="font-mono text-[22px] font-bold">{order.id}</span>
-              <PriorityBadge score={breakdown.total} level={breakdown.level} />
+              <PriorityBadge score={priority.total} level={priority.level} showScore />
               <StatusPill status={order.status} />
               <ChannelBadge channel={order.channel} />
               <CompletenessTag complete={order.completeness === 'Complete'} />
@@ -79,35 +105,23 @@ export default function OrderDetail() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {order.status !== 'Shipped' && (
-              <button
-                disabled={fulfillmentBlocked && order.status !== 'Compliance Check' && order.status !== 'Verified'}
-                className={`btn-pharma gap-1.5 ${fulfillmentBlocked && order.status !== 'Compliance Check' && order.status !== 'Verified' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              <ComplianceHardStop
+                complianceIssue={complianceIssue}
+                complianceCleared={order.complianceStatus === 'Passed' || !hasControlled}
+                operatorName={currentUser.name}
+                onUploadRenewal={() => toast({ title: 'Upload initiated', description: 'Renewal document upload queued.' })}
+                onEscalate={() => toast({ title: 'Escalated', description: 'Senior ops has been notified.' })}
               >
-                {nextStageLabel[order.status]}
-              </button>
+                <button className="btn-pharma gap-1.5">
+                  {nextStageLabel[order.status]}
+                </button>
+              </ComplianceHardStop>
             )}
             <button className="w-9 h-9 rounded flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </div>
         </div>
-
-        {/* Compliance block banner */}
-        {order.complianceStatus === 'Blocked' && (
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-400 text-sm">
-            <ShieldX className="h-4 w-4 mt-0.5 shrink-0" />
-            <div>
-              <div className="font-semibold">Compliance blocked — order cannot proceed to fulfillment</div>
-              <div className="text-xs opacity-80">{order.complianceBlockReason}</div>
-            </div>
-          </div>
-        )}
-        {fulfillmentBlocked && order.complianceStatus === 'Pending' && (
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <div className="font-semibold">DEA review pending — must pass compliance before fulfillment.</div>
-          </div>
-        )}
       </div>
 
       {/* Stepper */}
@@ -126,8 +140,8 @@ export default function OrderDetail() {
             </div>
 
             {partial && (
-              <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+              <div className="px-6 py-3 border-b border-border flex items-center justify-between gap-3" style={{ background:'#FEF3E0' }}>
+                <div className="flex items-center gap-2 text-sm" style={{ color:'#7A4510' }}>
                   <AlertTriangle className="h-4 w-4" />
                   Partial availability — some lines cannot be fully fulfilled.
                 </div>
@@ -181,7 +195,7 @@ export default function OrderDetail() {
                         <div className="flex flex-col gap-1">
                           <StockBadge product={item.product} showConfidence />
                           {short && state !== 'Out of Stock' && (
-                            <span className="text-[10px] text-amber-700 dark:text-amber-400">Short by {item.qtyOrdered - item.qtyAvailable}</span>
+                            <span className="text-[10px]" style={{ color:'#D4900A' }}>Short by {item.qtyOrdered - item.qtyAvailable}</span>
                           )}
                         </div>
                       </td>
@@ -192,7 +206,7 @@ export default function OrderDetail() {
             </table>
           </div>
 
-          {/* Collapsible Activity log */}
+          {/* Activity log */}
           <div className="card-pharma-compact">
             <button
               onClick={() => setActivityOpen(!activityOpen)}
@@ -203,7 +217,7 @@ export default function OrderDetail() {
             </button>
             {activityOpen && (
               <div className="px-6 pb-5 space-y-3">
-                {order.auditLog.map((entry, i) => (
+                {auditLog.map((entry, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
                     <div>
@@ -217,38 +231,60 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Right panel — 2 cards */}
+        {/* Right panel */}
         <div className="lg:col-span-2 space-y-6">
           {/* Priority breakdown */}
           <div className="card-pharma">
-            <h3 className="section-heading !text-base mb-4">Priority Score Breakdown</h3>
-            <div className="text-center mb-5">
-              <span className="text-4xl font-mono font-bold">{breakdown.total}</span>
-              <div className="mt-1">
-                <PriorityBadge score={breakdown.total} level={breakdown.level} />
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="section-heading !text-base !mb-0">Priority Score</h3>
+              {!showOverride && (
+                <button
+                  onClick={() => setShowOverride(true)}
+                  className="text-xs text-muted-foreground border border-border rounded px-2.5 py-1 hover:bg-accent transition-colors"
+                >
+                  Override Priority
+                </button>
+              )}
             </div>
-            <div className="space-y-3">
-              {[
-                { label: 'Urgency', value: breakdown.urgency, max: 40 },
-                { label: 'SLA Proximity', value: breakdown.slaProximity, max: 30 },
-                { label: 'Stock Risk', value: breakdown.stockRisk, max: 20 },
-                { label: 'Customer Tier', value: breakdown.customerTier, max: 10 },
-              ].map(item => (
-                <div key={item.label}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className="font-mono font-semibold">+{item.value}</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(item.value / item.max) * 100}%` }} />
-                  </div>
+
+            {showOverride ? (
+              <PriorityOverridePanel
+                orderId={order.id}
+                currentScore={priority.total}
+                currentLevel={priority.level}
+                operatorName={currentUser.name}
+                onConfirm={handleOverrideConfirm}
+                onCancel={() => setShowOverride(false)}
+              />
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <PriorityScore score={priority.total} level={priority.level} />
+                  <PriorityBadge score={priority.total} level={priority.level} />
                 </div>
-              ))}
-            </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Urgency', value: priority.urgency, max: 40 },
+                    { label: 'SLA Proximity', value: priority.slaProximity, max: 30 },
+                    { label: 'Stock Risk', value: priority.stockRisk, max: 20 },
+                    { label: 'Customer Tier', value: priority.customerTier, max: 10 },
+                  ].map(item => (
+                    <div key={item.label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className="font-mono font-semibold">+{item.value}</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(item.value / item.max) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Order context — merged customer + stock */}
+          {/* Order context */}
           <div className="card-pharma">
             <h3 className="section-heading !text-base mb-4">Order Context</h3>
             <div className="space-y-2 text-sm mb-5">
