@@ -90,6 +90,7 @@ function buildOrder(
     orderValue: items.reduce((s, i) => s + i.lineTotal, 0), status,
     assignedTo: assignee, assignedUser: user,
     orderDate: fmt(subHours(now, orderHoursAgo)),
+    enteredQueueAt: fmt(subHours(now, orderHoursAgo)),
     slaDeadline: fmt(addHours(now, slaHoursRemaining)),
     slaHoursRemaining, isUrgent, hasStockRisk, priority,
     auditLog: makeAudit(id, orderHoursAgo, assignee, extraAudit), channel,

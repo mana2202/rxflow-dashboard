@@ -12,9 +12,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Syne", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        mono: ["IBM Plex Mono", "monospace"],
+        sans:    ['DM Sans', 'system-ui', 'sans-serif'],
+        mono:    ['DM Mono', 'ui-monospace', 'monospace'],
+        display: ['DM Sans', 'sans-serif'],
+        body:    ['DM Sans', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -71,6 +72,22 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        rxflow: {
+          critical:         '#C3332B',
+          'critical-lt':    '#FDEAE9',
+          warning:          '#D4900A',
+          'warning-lt':     '#FEF3E0',
+          safe:             '#1A7F4B',
+          'safe-lt':        '#E4F5EB',
+          info:             '#2A5ECF',
+          'info-lt':        '#E7EDFC',
+          'surface-0':      '#F4F5F7',
+          'surface-1':      '#FFFFFF',
+          'surface-2':      '#F0F1F3',
+          'text-primary':   '#1A1D23',
+          'text-secondary': '#5C6370',
+          border:           '#E2E4E9',
         },
       },
       borderRadius: {

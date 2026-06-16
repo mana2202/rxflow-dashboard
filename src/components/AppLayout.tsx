@@ -22,6 +22,7 @@ export function AppLayout({ children, title, actions }: { children: ReactNode; t
   const { currentUser, currentRole, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const visibleNavItems = navItems.filter(i => !i.roles || i.roles.includes(currentRole));
+  const isReadOnly = currentRole === 'sales_rep';
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -32,6 +33,12 @@ export function AppLayout({ children, title, actions }: { children: ReactNode; t
           <span className="text-foreground">Flow</span>
         </h1>
         <div className="flex items-center gap-3">
+          {isReadOnly && (
+            <span className="text-[10px] font-semibold tracking-widest px-2.5 py-1 rounded border"
+              style={{ background:'#E7EDFC', color:'#1A3D7A', borderColor:'#2A5ECF' }}>
+              READ ONLY
+            </span>
+          )}
           {actions}
           <button
             onClick={toggleTheme}

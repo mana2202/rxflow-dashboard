@@ -68,6 +68,7 @@ export interface Order {
   assignedTo: string;
   assignedUser?: User;
   orderDate: string;
+  enteredQueueAt?: string;
   slaDeadline: string;
   slaHoursRemaining: number;
   isUrgent: boolean;

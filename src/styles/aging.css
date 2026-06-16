@@ -1,67 +1,31 @@
-/* Order aging visual indicators */
-
-.aging-card {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: box-shadow 0.15s ease;
-}
-
-.aging-card:hover {
-  box-shadow: var(--shadow-elevated);
-}
-
-/* Left accent bar driven by tier */
-.aging-card[data-tier='fresh'] {
-  border-left: 3px solid hsl(142 72% 37%);
-}
-.aging-card[data-tier='aging'] {
-  border-left: 3px solid hsl(32 95% 44%);
-}
-.aging-card[data-tier='stale'] {
-  border-left: 3px solid hsl(20 90% 50%);
-}
-.aging-card[data-tier='critical'] {
-  border-left: 3px solid hsl(0 78% 50%);
-}
-
-/* Pulsing dot for critical aging */
-.aging-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.aging-dot[data-tier='fresh']    { background: hsl(142 72% 37%); }
-.aging-dot[data-tier='aging']    { background: hsl(32 95% 44%); }
-.aging-dot[data-tier='stale']    { background: hsl(20 90% 50%); }
-.aging-dot[data-tier='critical'] {
-  background: hsl(0 78% 50%);
-  animation: aging-pulse 1.5s ease-in-out infinite;
-}
+.age-fresh    { border-left: 4px solid #E2E4E9; background-color: #FFFFFF; }
+.age-warning  { border-left: 4px solid #D4900A; background-color: #FFFDF7; }
+.age-critical { border-left: 4px solid #C3332B; background-color: #FFF8F7; }
+.age-critical .aging-timer { animation: aging-pulse 2s ease-in-out infinite; }
 
 @keyframes aging-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(1.3); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
-.aging-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
+@keyframes aging-to-warning {
+  0%   { border-left-width:4px; border-left-color:#E2E4E9; background-color:#ffffff; }
+  25%  { border-left-width:6px; border-left-color:#D4900A; background-color:#FFFDF7; }
+  60%  { border-left-width:5px; }
+  100% { border-left-width:4px; border-left-color:#D4900A; background-color:#FFFDF7; }
 }
+.animate-aging-to-warning { animation: aging-to-warning 400ms cubic-bezier(0.22,1,0.36,1) forwards; }
 
-.aging-label[data-tier='fresh']    { color: hsl(142 72% 37%); }
-.aging-label[data-tier='aging']    { color: hsl(32 95% 44%); }
-.aging-label[data-tier='stale']    { color: hsl(20 90% 50%); }
-.aging-label[data-tier='critical'] { color: hsl(0 78% 50%); }
+@keyframes aging-to-critical {
+  0%   { border-left-width:4px; border-left-color:#C3332B; background-color:#ffffff; }
+  12%  { border-left-width:10px; background-color:#FDEAE9; }
+  30%  { border-left-width:12px; background-color:#FDEAE9; }
+  55%  { border-left-width:6px;  background-color:#FFF8F7; }
+  100% { border-left-width:4px; border-left-color:#C3332B; background-color:#FFF8F7; }
+}
+.animate-aging-to-critical { animation: aging-to-critical 320ms cubic-bezier(0.22,1,0.36,1) forwards; }
 
-.dark .aging-label[data-tier='fresh']    { color: hsl(142 60% 50%); }
-.dark .aging-label[data-tier='aging']    { color: hsl(32 95% 60%); }
-.dark .aging-label[data-tier='stale']    { color: hsl(20 90% 65%); }
-.dark .aging-label[data-tier='critical'] { color: hsl(0 78% 65%); }
+@media (prefers-reduced-motion: reduce) {
+  .animate-aging-to-warning, .animate-aging-to-critical { animation: none; }
+  .age-critical .aging-timer { animation: none; }
+}

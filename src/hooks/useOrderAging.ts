@@ -1,14 +1,37 @@
-import { useState, useEffect } from 'react';
-import { getAgingInfo, type AgingInfo } from '@/utils/orderAging';
+import { useState, useEffect, useRef } from 'react';
+import { computeAging, type AgingInfo, type AgingState } from '@/utils/orderAging';
 
-export function useOrderAging(orderDateISO: string, refreshMs = 60_000): AgingInfo {
-  const [info, setInfo] = useState<AgingInfo>(() => getAgingInfo(orderDateISO));
+interface AgingResult extends AgingInfo {
+  isLiveTransition: boolean;
+  prevState: AgingState | null;
+}
+
+export function useOrderAging(
+  enteredQueueAt: string | Date | undefined,
+  orderDate?: string | Date,
+): AgingResult {
+  const [aging, setAging] = useState<AgingResult>(() => ({
+    ...computeAging(enteredQueueAt, orderDate),
+    isLiveTransition: false,
+    prevState: null,
+  }));
+  const prevStateRef = useRef<AgingState | null>(null);
 
   useEffect(() => {
-    setInfo(getAgingInfo(orderDateISO));
-    const id = setInterval(() => setInfo(getAgingInfo(orderDateISO)), refreshMs);
-    return () => clearInterval(id);
-  }, [orderDateISO, refreshMs]);
+    const initial = computeAging(enteredQueueAt, orderDate);
+    prevStateRef.current = initial.state;
+    setAging({ ...initial, isLiveTransition: false, prevState: null });
 
-  return info;
+    const interval = setInterval(() => {
+      const next = computeAging(enteredQueueAt, orderDate);
+      const prev = prevStateRef.current;
+      const didChange = prev !== null && next.state !== prev;
+      setAging({ ...next, isLiveTransition: didChange, prevState: didChange ? prev : null });
+      prevStateRef.current = next.state;
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [enteredQueueAt, orderDate]);
+
+  return aging;
 }

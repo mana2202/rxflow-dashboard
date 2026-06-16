@@ -1,92 +1,30 @@
-/* ComplianceHardStop styles — final v2 */
-
-.hardstop-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: hsl(0 0% 0% / 0.55);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  animation: hardstop-fade-in 0.2s ease;
+@keyframes hardstop-enter {
+  0%   { max-height:0; opacity:0; padding-top:0; padding-bottom:0; }
+  35%  { opacity:1; }
+  100% { max-height:200px; opacity:1; }
 }
+.hardstop-enter { overflow:hidden; animation:hardstop-enter 240ms cubic-bezier(0.16,1,0.3,1) forwards; }
 
-@keyframes hardstop-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes hardstop-collapse {
+  0%   { max-height:200px; }
+  100% { max-height:40px; }
 }
+.hardstop-collapse { overflow:hidden; animation:hardstop-collapse 160ms ease-in forwards; }
 
-.hardstop-panel {
-  background: hsl(var(--card));
-  border: 1.5px solid hsl(var(--danger) / 0.6);
-  border-radius: 16px;
-  padding: 32px;
-  max-width: 480px;
-  width: 100%;
-  box-shadow: 0 20px 60px hsl(0 78% 50% / 0.15), 0 4px 16px hsl(0 0% 0% / 0.2);
-  animation: hardstop-slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
+@keyframes hardstop-expand {
+  0%   { max-height:40px; }
+  100% { max-height:200px; }
 }
+.hardstop-expand { overflow:hidden; animation:hardstop-expand 200ms cubic-bezier(0.22,1,0.36,1) forwards; }
 
-@keyframes hardstop-slide-up {
-  from { opacity: 0; transform: translateY(16px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes hardstop-strip-enter {
+  0%   { opacity:0; transform:translateY(-3px); }
+  100% { opacity:1; transform:translateY(0); }
 }
+.hardstop-strip-enter { animation:hardstop-strip-enter 180ms ease-out forwards; }
 
-.hardstop-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: hsl(var(--danger) / 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: hsl(var(--danger));
-  margin-bottom: 16px;
-}
-
-.hardstop-title {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: hsl(var(--danger));
-  margin-bottom: 8px;
-}
-
-.hardstop-reason {
-  font-size: 14px;
-  line-height: 1.6;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 20px;
-}
-
-.hardstop-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: hsl(var(--danger) / 0.08);
-  border: 1px solid hsl(var(--danger) / 0.25);
-  border-radius: 6px;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: hsl(var(--danger));
-  margin-bottom: 20px;
-}
-
-.hardstop-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-/* Pulse ring on the icon for critical emphasis */
-.hardstop-icon-pulse {
-  animation: hardstop-ring-pulse 2s ease-in-out infinite;
-}
-
-@keyframes hardstop-ring-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--danger) / 0.4); }
-  50%       { box-shadow: 0 0 0 8px hsl(var(--danger) / 0); }
+@media (prefers-reduced-motion: reduce) {
+  .hardstop-enter, .hardstop-collapse, .hardstop-expand, .hardstop-strip-enter {
+    animation:none; max-height:none; overflow:visible; opacity:1; transform:none;
+  }
 }

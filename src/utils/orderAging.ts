@@ -1,56 +1,37 @@
-export type AgingTier = 'fresh' | 'aging' | 'stale' | 'critical';
+export type AgingState = 'fresh' | 'warning' | 'critical';
 
 export interface AgingInfo {
-  hoursOld: number;
-  tier: AgingTier;
-  label: string;
-  colorClass: string;
-  bgClass: string;
+  state: AgingState;
+  minutesInQueue: number;
+  cardClass: string;
+  timerLabel: string;
+  requiresEscalation: boolean;
 }
 
-const THRESHOLDS = {
-  fresh: 4,
-  aging: 12,
-  stale: 24,
-};
+const THRESHOLDS = { WARNING_MIN: 60, CRITICAL_MIN: 180 } as const;
 
-export function getAgingTier(hoursOld: number): AgingTier {
-  if (hoursOld < THRESHOLDS.fresh) return 'fresh';
-  if (hoursOld < THRESHOLDS.aging) return 'aging';
-  if (hoursOld < THRESHOLDS.stale) return 'stale';
-  return 'critical';
-}
+export function computeAging(
+  enteredQueueAt: string | Date | undefined,
+  orderDate?: string | Date,
+): AgingInfo {
+  const anchor = enteredQueueAt ?? orderDate;
+  if (!anchor) return { state:'fresh', minutesInQueue:0, cardClass:'age-fresh', timerLabel:'', requiresEscalation:false };
 
-export function getAgingLabel(hoursOld: number): string {
-  if (hoursOld < 1) return `${Math.round(hoursOld * 60)}m old`;
-  if (hoursOld < 24) return `${Math.floor(hoursOld)}h old`;
-  const days = Math.floor(hoursOld / 24);
-  const hrs = Math.floor(hoursOld % 24);
-  return hrs > 0 ? `${days}d ${hrs}h old` : `${days}d old`;
-}
+  const minutesInQueue = Math.floor((Date.now() - new Date(anchor).getTime()) / 60_000);
 
-export function getAgingInfo(orderDateISO: string): AgingInfo {
-  const hoursOld = (Date.now() - new Date(orderDateISO).getTime()) / 3_600_000;
-  const tier = getAgingTier(hoursOld);
-
-  const colorMap: Record<AgingTier, string> = {
-    fresh:    'text-emerald-700 dark:text-emerald-400',
-    aging:    'text-amber-700 dark:text-amber-400',
-    stale:    'text-orange-700 dark:text-orange-400',
-    critical: 'text-red-700 dark:text-red-400',
-  };
-  const bgMap: Record<AgingTier, string> = {
-    fresh:    'bg-emerald-500/10',
-    aging:    'bg-amber-500/10',
-    stale:    'bg-orange-500/10',
-    critical: 'bg-red-500/10',
-  };
-
-  return {
-    hoursOld,
-    tier,
-    label: getAgingLabel(hoursOld),
-    colorClass: colorMap[tier],
-    bgClass: bgMap[tier],
-  };
+  if (minutesInQueue >= THRESHOLDS.CRITICAL_MIN) {
+    const hrs = Math.floor(minutesInQueue / 60);
+    const min = minutesInQueue % 60;
+    return { state:'critical', minutesInQueue, cardClass:'age-critical',
+      timerLabel:`⚠ ${hrs}h ${min}m — Senior ops notified`, requiresEscalation:true };
+  }
+  if (minutesInQueue >= THRESHOLDS.WARNING_MIN) {
+    const hrs = Math.floor(minutesInQueue / 60);
+    const min = minutesInQueue % 60;
+    return { state:'warning', minutesInQueue, cardClass:'age-warning',
+      timerLabel:`⏱ ${hrs}h ${min}m — escalating soon`, requiresEscalation:false };
+  }
+  const remaining = THRESHOLDS.WARNING_MIN - minutesInQueue;
+  return { state:'fresh', minutesInQueue, cardClass:'age-fresh',
+    timerLabel:minutesInQueue > 0 ? `⏱ Review within ${remaining} min` : '', requiresEscalation:false };
 }

@@ -5,6 +5,7 @@ import { PriorityBadge } from '@/components/PriorityBadge';
 import { ProductTypePill } from '@/components/ProductTypePill';
 import { StatusPill } from '@/components/StatusPill';
 import { SlaCountdown } from '@/components/SlaCountdown';
+import { AgingCard, AgingTimerLabel } from '@/components/AgingCard';
 import { demoOrders } from '@/data/demo';
 import { useAuth } from '@/context/AuthContext';
 import { CheckCircle, ArrowRight } from 'lucide-react';
@@ -19,7 +20,6 @@ const stageActions: Record<OrderStatus, string> = {
   'Shipped': 'View Details',
 };
 
-// Demo pickup data
 const pickups = [
   { hauler: 'FedEx Express', zone: 'NE-01', time: '10:30 AM', orderCount: 8, confirmed: true },
   { hauler: 'UPS Medical', zone: 'NE-02', time: '12:00 PM', orderCount: 5, confirmed: true },
@@ -27,15 +27,6 @@ const pickups = [
   { hauler: 'UPS Standard', zone: 'NE-01', time: '4:00 PM', orderCount: 6, confirmed: false },
   { hauler: 'USPS Priority', zone: 'NE-04', time: '5:00 PM', orderCount: 3, confirmed: false },
 ];
-
-function getPriorityBorderColor(level: string) {
-  switch (level) {
-    case 'CRITICAL': return 'border-l-red-500';
-    case 'HIGH': return 'border-l-orange-500';
-    case 'MEDIUM': return 'border-l-amber-400';
-    default: return 'border-l-gray-400';
-  }
-}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -61,38 +52,47 @@ export default function Home() {
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
             {needsAction.map(order => (
-              <div
+              <AgingCard
                 key={order.id}
-                className={`card-pharma-compact flex-shrink-0 w-[360px] border-l-4 ${getPriorityBorderColor(order.priority.level)} p-5`}
+                enteredQueueAt={order.enteredQueueAt}
+                orderDate={order.orderDate}
+                className="flex-shrink-0 w-[360px] p-5"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <PriorityBadge score={order.priority.total} level={order.priority.level} />
-                  <span className="font-mono text-xs text-muted-foreground">{order.id}</span>
-                </div>
-                <p className="text-lg font-semibold mb-2">{order.account.name}</p>
-                <div className="flex items-center gap-2 mb-2">
-                  <ProductTypePill type={order.productType} />
-                  <StatusPill status={order.status} />
-                </div>
-                <div className="mb-4">
-                  <span className="text-sm text-muted-foreground">Due in </span>
-                  <SlaCountdown hours={order.slaHoursRemaining} />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                    className="btn-pharma flex-1 text-xs gap-1.5"
-                  >
-                    {stageActions[order.status]} <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                    className="btn-pharma-outline text-xs"
-                  >
-                    Details
-                  </button>
-                </div>
-              </div>
+                {(aging) => (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <PriorityBadge score={order.priority.total} level={order.priority.level} showScore />
+                      <span className="font-mono text-xs text-muted-foreground">{order.id}</span>
+                    </div>
+                    <p className="text-lg font-semibold mb-2">{order.account.name}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <ProductTypePill type={order.productType} />
+                      <StatusPill status={order.status} />
+                    </div>
+                    <div className="mb-1">
+                      <span className="text-sm text-muted-foreground">Due in </span>
+                      <SlaCountdown hours={order.slaHoursRemaining} />
+                    </div>
+                    <div className="mb-4">
+                      <AgingTimerLabel timerLabel={aging.timerLabel} state={aging.state} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="btn-pharma flex-1 text-xs gap-1.5"
+                      >
+                        {stageActions[order.status]} <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="btn-pharma-outline text-xs"
+                      >
+                        Details
+                      </button>
+                    </div>
+                  </>
+                )}
+              </AgingCard>
             ))}
           </div>
         )}

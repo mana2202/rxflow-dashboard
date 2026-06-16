@@ -10,34 +10,36 @@
     --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 4%;
-    --primary: 0 78% 50%;
+    --primary:    2 62% 47%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 4%;
     --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 42%;
+    --muted-foreground: 220 8% 42%;
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 4%;
-    --destructive: 0 78% 50%;
+    --destructive: 2 62% 47%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 0 78% 50%;
+    --border:  220 12% 89%;
+    --input:   220 12% 89%;
+    --ring:    2 62% 47%;
     --radius: 0.5rem;
 
-    --success: 142 72% 37%;
+    --success:  148 65% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
+    --warning:   38 91% 44%;
     --warning-foreground: 0 0% 100%;
-    --danger: 0 78% 50%;
+    --danger:     2 62% 47%;
     --danger-foreground: 0 0% 100%;
+    --info:     220 66% 49%;
+    --info-foreground: 0 0% 100%;
 
     --nav-pill-bg: 0 0% 100% / 0.85;
-    --nav-pill-border: 0 0% 88%;
+    --nav-pill-border: 220 12% 89%;
 
-    --font-display: 'Syne', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
+    --font-display: 'DM Sans', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+    --font-mono:    'DM Mono', monospace;
 
     --shadow-card: 0 1px 3px rgba(0,0,0,0.05);
     --shadow-elevated: 0 4px 12px rgba(0,0,0,0.08);
@@ -51,25 +53,25 @@
     --card-foreground: 0 0% 94%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 94%;
-    --primary: 0 78% 50%;
+    --primary:    2 62% 47%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 94%;
     --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 53%;
+    --muted-foreground: 220 8% 53%;
     --accent: 0 0% 14%;
     --accent-foreground: 0 0% 94%;
-    --destructive: 0 78% 50%;
+    --destructive: 2 62% 47%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 17%;
     --input: 0 0% 17%;
-    --ring: 0 78% 50%;
+    --ring:  2 62% 47%;
 
-    --success: 142 72% 37%;
+    --success:  148 65% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
+    --warning:   38 91% 44%;
     --warning-foreground: 0 0% 100%;
-    --danger: 0 78% 50%;
+    --danger:     2 62% 47%;
     --danger-foreground: 0 0% 100%;
 
     --nav-pill-bg: 0 0% 6% / 0.85;
@@ -91,9 +93,13 @@
     font-size: 15px;
     line-height: 1.6;
     transition: background-color 0.2s, color 0.2s;
+    font-feature-settings: "cv01", "cv02", "cv03";
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+  }
+  .font-mono, [class*="font-mono"] {
+    font-feature-settings: "tnum", "ss01";
   }
 }
 
@@ -141,26 +147,30 @@
     @apply pill text-primary-foreground;
     background-color: hsl(var(--danger));
   }
-  .priority-critical {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--danger));
-  }
-  .priority-high {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--warning));
-  }
-  .priority-medium {
-    @apply pill;
-    background-color: hsl(45 93% 47% / 0.15);
-    color: hsl(45 93% 30%);
-  }
-  .dark .priority-medium {
-    background-color: hsl(45 93% 47% / 0.2);
-    color: hsl(45 93% 65%);
-  }
-  .priority-routine {
-    @apply pill bg-muted text-muted-foreground;
-  }
+
+  /* Priority badge states */
+  .priority-critical { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide border; background:#FDEAE9; color:#7A1F1A; border-color:#C3332B; }
+  .priority-high     { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide border; background:#FEF3E0; color:#7A4510; border-color:#D4900A; }
+  .priority-med      { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide border; background:#E7EDFC; color:#1A3D7A; border-color:#2A5ECF; }
+  .priority-low      { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide border; background:#F0F1F3; color:#3D424C; border-color:#E2E4E9; }
+
+  /* Stage badge states */
+  .stage-intake      { @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide border; background:#F0F1F3; color:#3D424C; border-color:#E2E4E9; }
+  .stage-compliance  { @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide border; background:#E7EDFC; color:#1A3D7A; border-color:#2A5ECF; }
+  .stage-fulfillment { @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide border; background:#FEF3E0; color:#7A4510; border-color:#D4900A; }
+  .stage-dispatch    { @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide border; background:#E4F5EB; color:#0D4D2B; border-color:#1A7F4B; }
+
+  /* Stock badge states */
+  .stock-in       { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold; background:#E4F5EB; color:#0D4D2B; }
+  .stock-low      { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold; background:#FEF3E0; color:#7A4510; }
+  .stock-at-risk  { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold; background:#FDEAE9; color:#7A1F1A; }
+  .stock-out      { @apply inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold; background:#F0F1F3; color:#3D424C; }
+
+  /* Card aging left borders */
+  .age-fresh    { border-left: 4px solid #E2E4E9; }
+  .age-warning  { border-left: 4px solid #D4900A; background: #FFFDF7; }
+  .age-critical { border-left: 4px solid #C3332B; background: #FFF8F7; }
+
   .kpi-card {
     @apply card-pharma;
   }
@@ -175,6 +185,27 @@
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 16px;
+  }
+
+  /* Design token: stage badge base (legacy) */
+  .stage-badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium;
+  }
+
+  /* Motion: entrance fade-up for cards */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.3s ease forwards;
+  }
+
+  /* Mono chip */
+  .mono-chip {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
   }
 
   /* Floating pill nav */
@@ -231,26 +262,5 @@
   }
   .sla-pulse {
     animation: sla-pulse 1.5s ease-in-out infinite;
-  }
-
-  /* Design token: stage badge base */
-  .stage-badge {
-    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium;
-  }
-
-  /* Motion: entrance fade-up for cards */
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .animate-fade-up {
-    animation: fade-up 0.3s ease forwards;
-  }
-
-  /* Design token alignment: mono chip */
-  .mono-chip {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground;
-    font-family: var(--font-mono);
-    letter-spacing: 0.03em;
   }
 }
