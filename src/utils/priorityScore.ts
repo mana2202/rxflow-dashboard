@@ -1,68 +1,56 @@
-export type PriorityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'ROUTINE';
+export type PriorityLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW';
 
 export interface PriorityBreakdown {
-  urgency: number;
-  slaProximity: number;
-  stockRisk: number;
-  customerTier: number;
+  slaUrgency: number;           // 0–40  (40% weight)
+  clientTier: number;           // 0–25  (25% weight)
+  complianceComplexity: number; // 0–20  (20% weight)
+  stockRisk: number;            // 0–15  (15% weight)
   total: number;
   level: PriorityLevel;
 }
 
-export interface PriorityWeights {
-  urgency: number;
-  slaProximity: number;
-  stockRisk: number;
-  customerTier: number;
-}
-
-export const DEFAULT_WEIGHTS: PriorityWeights = {
-  urgency: 40,
-  slaProximity: 30,
-  stockRisk: 20,
-  customerTier: 10,
-};
-
-export function computePriorityScore(
-  params: {
-    isUrgent: boolean;
-    slaHoursRemaining: number;
-    hasStockRisk: boolean;
-    customerTier: 1 | 2 | 3;
-  },
-  weights: PriorityWeights = DEFAULT_WEIGHTS
-): PriorityBreakdown {
-  const urgency = params.isUrgent ? weights.urgency : 0;
-
-  let slaProximity = 0;
-  if (params.slaHoursRemaining <= 0) {
-    slaProximity = weights.slaProximity;
+export function computePriorityScore(params: {
+  isUrgent: boolean;
+  slaHoursRemaining: number;
+  hasStockRisk: boolean;
+  customerTier: 1 | 2 | 3;
+  productType?: 'OTC' | 'Controlled' | 'Device';
+}): PriorityBreakdown {
+  // SLA urgency: 40% — how close is the delivery date; isUrgent maxes it out
+  let slaUrgency = 0;
+  if (params.isUrgent || params.slaHoursRemaining <= 0) {
+    slaUrgency = 40;
   } else if (params.slaHoursRemaining < 48) {
-    slaProximity = Math.round(weights.slaProximity * (1 - params.slaHoursRemaining / 48));
+    slaUrgency = Math.round(40 * (1 - params.slaHoursRemaining / 48));
   }
 
-  const stockRisk = params.hasStockRisk ? weights.stockRisk : 0;
+  // Client tier: 25% — VIP (Tier 1) highest
+  const tierScores: Record<number, number> = { 1: 25, 2: 12, 3: 5 };
+  const clientTier = tierScores[params.customerTier] ?? 5;
 
-  const tierMap: Record<number, number> = { 1: weights.customerTier, 2: Math.round(weights.customerTier * 0.5), 3: Math.round(weights.customerTier * 0.2) };
-  const customerTier = tierMap[params.customerTier] ?? 0;
+  // Compliance complexity: 20% — Controlled > Device > OTC
+  const compMap: Record<string, number> = { Controlled: 20, Device: 10, OTC: 0 };
+  const complianceComplexity = compMap[params.productType ?? 'OTC'] ?? 0;
 
-  const total = Math.min(100, urgency + slaProximity + stockRisk + customerTier);
+  // Stock risk: 15% — AT RISK or OUT
+  const stockRisk = params.hasStockRisk ? 15 : 0;
 
-  return { urgency, slaProximity, stockRisk, customerTier, total, level: getLevel(total) };
+  const total = Math.min(100, slaUrgency + clientTier + complianceComplexity + stockRisk);
+  return { slaUrgency, clientTier, complianceComplexity, stockRisk, total, level: getLevel(total) };
 }
 
 export function getLevel(score: number): PriorityLevel {
   if (score >= 80) return 'CRITICAL';
   if (score >= 60) return 'HIGH';
-  if (score >= 40) return 'MEDIUM';
-  return 'ROUTINE';
+  if (score >= 35) return 'MED';
+  return 'LOW';
 }
 
 export function getLevelColor(level: PriorityLevel) {
   switch (level) {
     case 'CRITICAL': return 'priority-critical';
-    case 'HIGH': return 'priority-high';
-    case 'MEDIUM': return 'priority-medium';
-    case 'ROUTINE': return 'priority-routine';
+    case 'HIGH':     return 'priority-high';
+    case 'MED':      return 'priority-medium';
+    case 'LOW':      return 'priority-routine';
   }
 }

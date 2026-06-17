@@ -14,19 +14,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentRole, setCurrentRole] = useState<UserRole>('pharmacy_staff');
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [currentRole, setCurrentRole] = useState<UserRole>(
+    () => (localStorage.getItem('rxflow_role') as UserRole) ?? 'sales_rep'
+  );
 
   const currentUser = demoUsers.find(u => u.role === currentRole) ?? demoUsers[0];
+
+  const login = () => { setIsLoggedIn(true); localStorage.setItem('rxflow_auth', '1'); };
+  const logout = () => { setIsLoggedIn(false); localStorage.removeItem('rxflow_auth'); localStorage.removeItem('rxflow_role'); };
+  const setRole = (r: UserRole) => { setCurrentRole(r); localStorage.setItem('rxflow_role', r); };
 
   return (
     <AuthContext.Provider value={{
       isLoggedIn,
       currentUser,
       currentRole,
-      setRole: setCurrentRole,
-      login: () => setIsLoggedIn(true),
-      logout: () => setIsLoggedIn(false),
+      setRole,
+      login,
+      logout,
     }}>
       {children}
     </AuthContext.Provider>

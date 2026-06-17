@@ -12,18 +12,30 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Syne", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        mono: ["IBM Plex Mono", "monospace"],
+        display: ["DM Sans", "system-ui", "sans-serif"],
+        body: ["DM Sans", "system-ui", "sans-serif"],
+        mono: ["DM Mono", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        // Real type scale — discourages arbitrary text-[10px]/[11px]
+        "2xs": ["11px", { lineHeight: "1.4" }],
+        xs: ["12px", { lineHeight: "1.4" }],
+        sm: ["14px", { lineHeight: "1.5" }],
+        base: ["16px", { lineHeight: "1.5" }],
+        lg: ["20px", { lineHeight: "1.2" }],
+        xl: ["24px", { lineHeight: "1.15" }],
+        display: ["30px", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
       },
       colors: {
         border: "hsl(var(--border))",
+        "border-strong": "hsl(var(--border-strong))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          hover: "hsl(var(--primary-hover))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -50,37 +62,46 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Semantic lanes — solid / tint / on-tint text (each means ONE thing)
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          tint: "hsl(var(--success-tint))",
+          text: "hsl(var(--success-text))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          tint: "hsl(var(--warning-tint))",
+          text: "hsl(var(--warning-text))",
         },
         danger: {
           DEFAULT: "hsl(var(--danger))",
           foreground: "hsl(var(--danger-foreground))",
+          tint: "hsl(var(--danger-tint))",
+          text: "hsl(var(--danger-text))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          tint: "hsl(var(--info-tint))",
+          text: "hsl(var(--info-text))",
+        },
+        regulated: {
+          DEFAULT: "hsl(var(--regulated))",
+          foreground: "hsl(var(--regulated-foreground))",
         },
       },
       borderRadius: {
+        xl: "12px",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "8px",
+        sm: "6px",
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0,0,0,0.05)",
-        elevated: "0 4px 12px rgba(0,0,0,0.08)",
+        card: "var(--shadow-card)",
+        elevated: "var(--shadow-elevated)",
+        pill: "var(--shadow-pill)",
       },
       keyframes: {
         "accordion-down": {
@@ -91,15 +112,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        pulse_dot: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.3" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-dot": "pulse_dot 2s ease-in-out infinite",
       },
     },
   },

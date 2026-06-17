@@ -9,15 +9,15 @@ import { toast } from '@/hooks/use-toast';
 type Filter = 'all' | 'risk' | 'low-conf' | 'reorder';
 
 const confColor: Record<StockConfidence, string> = {
-  High: 'text-emerald-600 dark:text-emerald-400',
-  Medium: 'text-amber-600 dark:text-amber-400',
-  Low: 'text-red-600 dark:text-red-400',
+  High: 'text-success-text',
+  Medium: 'text-warning-text',
+  Low: 'text-danger',
 };
 
 const categoryStyle: Record<string, string> = {
-  OTC: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  Controlled: 'bg-red-500/10 text-red-700 dark:text-red-400',
-  Device: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+  OTC: 'bg-info-tint text-info-text',
+  Controlled: 'bg-danger-tint text-danger-text',
+  Device: 'bg-info-tint text-info-text',
 };
 
 interface Row {
@@ -94,8 +94,8 @@ export default function InventoryDetails() {
       {/* Summary tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <SummaryTile icon={Package} label="Total SKUs" value={String(counts.all)} />
-        <SummaryTile icon={AlertTriangle} label="At Risk / Out" value={String(counts.risk)} accent="text-red-600 dark:text-red-400" />
-        <SummaryTile icon={Clock} label="Low-Confidence Stock" value={String(counts.lowConf)} accent="text-amber-600 dark:text-amber-400" />
+        <SummaryTile icon={AlertTriangle} label="At Risk / Out" value={String(counts.risk)} accent="text-danger" />
+        <SummaryTile icon={Clock} label="Low-Confidence Stock" value={String(counts.lowConf)} accent="text-warning-text" />
         <SummaryTile icon={ShoppingCart} label="Suggested Reorder" value={`$${Math.round(totalReorderValue).toLocaleString()}`} accent="text-primary" />
       </div>
 
@@ -125,7 +125,7 @@ export default function InventoryDetails() {
       <div className="card-pharma p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border bg-muted/40 text-2xs uppercase tracking-wider text-muted-foreground">
               <th className="text-left font-medium px-4 py-3">SKU / Product</th>
               <th className="text-left font-medium px-3 py-3">Stock</th>
               <th className="text-right font-medium px-3 py-3">On hand</th>
@@ -142,14 +142,14 @@ export default function InventoryDetails() {
               const hours = r.product.stockLastUpdatedHours ?? 0;
               const cover = r.daysOfCover;
               const coverCls =
-                cover < 7 ? 'text-red-600 dark:text-red-400' :
-                cover < 14 ? 'text-amber-600 dark:text-amber-400' :
+                cover < 7 ? 'text-danger' :
+                cover < 14 ? 'text-warning-text' :
                 'text-foreground';
               return (
                 <tr key={r.product.sku} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${categoryStyle[r.product.category] ?? ''}`}>
+                      <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded ${categoryStyle[r.product.category] ?? ''}`}>
                         {r.product.category === 'Controlled' ? `C-${r.product.schedule ?? ''}` : r.product.category}
                       </span>
                       <div>
@@ -165,7 +165,7 @@ export default function InventoryDetails() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono">{r.dailyDemand}/day</span>
                       {r.trendDelta !== 0 && (
-                        <span className={`inline-flex items-center gap-0.5 text-[11px] ${r.trendDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        <span className={`inline-flex items-center gap-0.5 text-2xs ${r.trendDelta > 0 ? 'text-success-text' : 'text-danger'}`}>
                           {r.trendDelta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                           {Math.abs(r.trendDelta)}%
                         </span>
@@ -176,7 +176,7 @@ export default function InventoryDetails() {
                     {cover >= 999 ? '∞' : `${cover}d`}
                   </td>
                   <td className="px-3 py-3">
-                    <div className={`inline-flex items-center gap-1 text-[11px] ${confColor[conf]}`}>
+                    <div className={`inline-flex items-center gap-1 text-2xs ${confColor[conf]}`}>
                       <Clock className="h-3 w-3" /> {hours}h ago · {conf}
                     </div>
                   </td>
@@ -186,13 +186,13 @@ export default function InventoryDetails() {
                         <span className="font-mono font-semibold">+{r.suggestedQty.toLocaleString()}</span>
                         <button
                           onClick={() => toast({ title: 'PO drafted', description: `${r.suggestedQty} × ${r.product.sku} queued for procurement.` })}
-                          className="text-[10px] uppercase tracking-wider text-primary hover:underline"
+                          className="text-2xs uppercase tracking-wider text-primary hover:underline"
                         >
                           Create PO
                         </button>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-2xs text-success-text">
                         <ShieldCheck className="h-3 w-3" /> Healthy
                       </span>
                     )}
@@ -204,7 +204,7 @@ export default function InventoryDetails() {
         </table>
       </div>
 
-      <p className="text-[11px] text-muted-foreground mt-3">
+      <p className="text-2xs text-muted-foreground mt-3">
         Demand is computed from the last 14 days of order history. Suggested quantities target ~30 days of cover at the current run-rate. Stock risk feeds directly into the priority score — no separate compliance step needed.
       </p>
     </AppLayout>
@@ -214,7 +214,7 @@ export default function InventoryDetails() {
 function SummaryTile({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) {
   return (
     <div className="card-pharma-compact p-4">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2 text-2xs uppercase tracking-wider text-muted-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </div>
       <div className={`font-mono text-2xl font-bold mt-1 ${accent ?? ''}`}>{value}</div>

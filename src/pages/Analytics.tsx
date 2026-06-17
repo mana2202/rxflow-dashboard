@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { demoOrders, demoDailyVolume, demoSLABreaches } from '@/data/demo';
 import { PriorityBadge } from '@/components/PriorityBadge';
@@ -10,17 +11,20 @@ import {
 import { format } from 'date-fns';
 import { getLevel } from '@/utils/priorityScore';
 
-const COLORS = { critical: '#E02020', high: '#D97706', medium: '#EAB308', routine: '#9CA3AF' };
-const TYPE_COLORS = { otc: '#9CA3AF', controlled: '#E02020', device: '#3B82F6' };
+// Chart palette drawn from the RxFlow DS tokens (recharts needs literal colors).
+const COLORS = { critical: '#C3332B', high: '#D4900A', medium: '#B0B0B0', routine: '#E2E4E9' };
+// Controlled reads as regulated INK here too — not a red alarm.
+const TYPE_COLORS = { otc: '#9B9B9B', controlled: '#1A1D23', device: '#2A5ECF' };
 
 export default function Analytics() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState('30d');
 
   const priorityDist = [
     { name: 'Critical', value: demoOrders.filter(o => o.priority.level === 'CRITICAL').length, color: COLORS.critical },
     { name: 'High', value: demoOrders.filter(o => o.priority.level === 'HIGH').length, color: COLORS.high },
-    { name: 'Medium', value: demoOrders.filter(o => o.priority.level === 'MEDIUM').length, color: COLORS.medium },
-    { name: 'Routine', value: demoOrders.filter(o => o.priority.level === 'ROUTINE').length, color: COLORS.routine },
+    { name: 'Med', value: demoOrders.filter(o => o.priority.level === 'MED').length, color: COLORS.medium },
+    { name: 'Low', value: demoOrders.filter(o => o.priority.level === 'LOW').length, color: COLORS.routine },
   ];
 
   const slaByType = [
@@ -34,25 +38,34 @@ export default function Analytics() {
     time: h >= 14 && h <= 16 ? 5.2 + Math.random() * 1.5 : h >= 6 && h <= 10 ? 2.8 + Math.random() * 0.8 : 3.5 + Math.random() * 1.2,
   }));
 
+  // Linear fulfillment funnel. Compliance is a BRANCH (controlled only), not a
+  // funnel step — it's reported separately below, so the funnel stays monotonic.
   const funnelData = [
-    { name: 'Received', value: 1284, fill: '#0A0A0A' },
-    { name: 'Verified', value: 1261, fill: '#374151' },
-    { name: 'Picking', value: 1238, fill: '#6B7280' },
-    { name: 'Compliance', value: 312, fill: '#E02020' },
-    { name: 'Ready to Ship', value: 1219, fill: '#9CA3AF' },
-    { name: 'Fulfilled', value: 1201, fill: '#16A34A' },
+    { name: 'Received', value: 1284, fill: '#1A1D23' },
+    { name: 'Verified', value: 1261, fill: '#3A3F4A' },
+    { name: 'Picking', value: 1238, fill: '#5C6370' },
+    { name: 'Ready to Ship', value: 1219, fill: '#9B9B9B' },
+    { name: 'Fulfilled', value: 1201, fill: '#1A7F4B' },
   ];
 
   return (
     <AppLayout
       title="Order Analytics"
       actions={
-        <select value={period} onChange={e => setPeriod(e.target.value)} className="text-sm border border-border rounded px-3 py-1.5 bg-card">
-          <option value="7d">Last 7 Days</option>
-          <option value="30d">Last 30 Days</option>
-          <option value="quarter">Last Quarter</option>
-          <option value="ytd">YTD</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/override-log')}
+            className="btn-pharma-outline text-xs"
+          >
+            Override Log
+          </button>
+          <select value={period} onChange={e => setPeriod(e.target.value)} className="text-sm border border-border rounded px-3 py-1.5 bg-card">
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="quarter">Last Quarter</option>
+            <option value="ytd">YTD</option>
+          </select>
+        </div>
       }
     >
       {/* KPIs */}
@@ -66,8 +79,8 @@ export default function Analytics() {
         ].map(kpi => (
           <div key={kpi.label} className="kpi-card">
             <p className="text-xs text-muted-foreground mb-1">{kpi.label}</p>
-            <p className="text-2xl font-bold font-mono">{kpi.value}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{kpi.sub}</p>
+            <p className="kpi-number">{kpi.value}</p>
+            <p className="text-2xs text-muted-foreground mt-1">{kpi.sub}</p>
           </div>
         ))}
       </div>
@@ -118,7 +131,7 @@ export default function Analytics() {
             </BarChart>
           </ResponsiveContainer>
           <div className="border-t border-border mt-3 pt-2">
-            <p className="text-[11px] text-muted-foreground">Target: 95% — Controlled substances below target (88.9%)</p>
+            <p className="text-2xs text-muted-foreground">Target: 95% — Controlled substances below target (88.9%)</p>
           </div>
         </div>
         <div className="card-pharma p-5">
@@ -133,7 +146,7 @@ export default function Analytics() {
             </LineChart>
           </ResponsiveContainer>
           <div className="border-t border-border mt-3 pt-2">
-            <p className="text-[11px] text-muted-foreground">Spike 2pm–4pm suggests shift-change bottleneck</p>
+            <p className="text-2xs text-muted-foreground">Spike 2pm–4pm suggests shift-change bottleneck</p>
           </div>
         </div>
       </div>
@@ -162,7 +175,7 @@ export default function Analytics() {
                   />
                 </div>
                 <p className="font-mono text-sm font-bold mt-1">{stage.value.toLocaleString()}</p>
-                {i > 0 && <p className="text-[10px] text-muted-foreground">{pct}%</p>}
+                {i > 0 && <p className="text-2xs text-muted-foreground">{pct}%</p>}
               </div>
             );
           })}

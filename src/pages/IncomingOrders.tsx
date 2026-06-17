@@ -1,3 +1,4 @@
+import '../styles/inbox.css';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -29,14 +30,42 @@ export default function IncomingOrders() {
   const [dupOpen, setDupOpen] = useState(false);
   const [dupPair, setDupPair] = useState<[Order, Order] | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
+  const [expiringBadgeIds, setExpiringBadgeIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     accountId: demoAccounts[0].id,
-    channel: 'Portal' as OrderChannel,
+    channel: 'Phone' as OrderChannel,
     sku: demoProducts[0].sku,
     qty: 10,
     slaHours: 24,
     isUrgent: false,
   });
+
+  // Pre-submission checks (computed from current form state)
+  const preChecks = useMemo(() => {
+    const account = demoAccounts.find(a => a.id === form.accountId);
+    const product = demoProducts.find(p => p.sku === form.sku);
+    if (!account || !product) return null;
+
+    const dupMatch = demoOrders.find(o =>
+      o.accountId === form.accountId &&
+      o.items.some(i => i.product.sku === form.sku) &&
+      Date.now() - new Date(o.orderDate).getTime() < 7 * 24 * 3600000
+    );
+
+    const isControlled = product.category === 'Controlled';
+    const stockState = product.currentStock < product.reorderPoint * 0.5 ? 'At Risk' :
+                       product.currentStock < product.reorderPoint ? 'Low Stock' : 'In Stock';
+    const licenseExpiringSoon = account.tier === 1; // simulate: Tier 1 accounts have active licenses
+
+    return {
+      duplicate: dupMatch ? { warn: true, msg: `Possible duplicate of ${dupMatch.id} (same account + SKU, within 7 days)` } : { warn: false, msg: 'No duplicate detected' },
+      controlled: { warn: isControlled, msg: isControlled ? 'Controlled substance — will auto-route to Compliance on submit' : 'No controlled substances' },
+      stock: stockState !== 'In Stock' ? { warn: true, msg: `Stock ${stockState}: ${product.currentStock} units (reorder point: ${product.reorderPoint})` } : { warn: false, msg: `In stock: ${product.currentStock} units` },
+      license: !licenseExpiringSoon ? { warn: true, msg: 'License status unknown — verify before dispatch' } : { warn: false, msg: 'License on file' },
+      dupOrder: dupMatch ?? null,
+    };
+  }, [form.accountId, form.sku]);
 
   const counts = useMemo(() => ({
     all: orders.length,
@@ -115,6 +144,8 @@ export default function IncomingOrders() {
     });
     const newId = `RX-2024-${String(Math.floor(90000 + Math.random() * 9999))}`;
     const nowD = new Date();
+    // Controlled substances auto-route to Compliance Check, skipping Incoming
+    const initialStatus = product.category === 'Controlled' ? 'Compliance Check' : 'Incoming';
     const newOrder: Order = {
       id: newId,
       accountId: account.id,
@@ -123,7 +154,7 @@ export default function IncomingOrders() {
       items: [item],
       itemCount: 1,
       orderValue: item.lineTotal,
-      status: 'Incoming',
+      status: initialStatus,
       assignedTo: 'Sarah Chen',
       orderDate: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"),
       slaDeadline: format(addHours(nowD, form.slaHours), "yyyy-MM-dd'T'HH:mm:ss"),
@@ -131,12 +162,21 @@ export default function IncomingOrders() {
       isUrgent: form.isUrgent,
       hasStockRisk,
       priority,
-      auditLog: [{ timestamp: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"), action: `Order ${newId} created manually via ${form.channel}` }],
+      auditLog: [{ timestamp: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"), action: `Order ${newId} created via ${form.channel}` }],
+      overrides: [],
       channel: form.channel,
       completeness: 'Complete',
       complianceStatus: product.category === 'Controlled' ? 'Pending' : 'Not Required',
+      enteredQueueAt: format(nowD, "yyyy-MM-dd'T'HH:mm:ss"),
     };
     setOrders(prev => [newOrder, ...prev]);
+    setNewOrderIds(prev => new Set([...prev, newId]));
+    // Start badge fade at 4s, remove entering class at 4.6s
+    setTimeout(() => setExpiringBadgeIds(prev => new Set([...prev, newId])), 4000);
+    setTimeout(() => {
+      setNewOrderIds(prev => { const n = new Set(prev); n.delete(newId); return n; });
+      setExpiringBadgeIds(prev => { const n = new Set(prev); n.delete(newId); return n; });
+    }, 4600);
     setNewOpen(false);
     toast({ title: 'Order created', description: `${newId} added to intake.` });
   };
@@ -185,19 +225,24 @@ export default function IncomingOrders() {
                 o.duplicateOfId ? 'border-l-orange-500' :
                 o.priority.level === 'CRITICAL' ? 'border-l-red-500' :
                 o.priority.level === 'HIGH' ? 'border-l-orange-400' : 'border-l-emerald-500'
-              }`}
+              } ${newOrderIds.has(o.id) ? 'inbox-card-entering' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 {/* Left: identity + tags */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1.5">
                     <span className="font-mono text-sm font-semibold">{o.id}</span>
+                    {newOrderIds.has(o.id) && (
+                      <span className={`px-1.5 py-0.5 rounded text-2xs font-bold bg-primary text-primary-foreground ${expiringBadgeIds.has(o.id) ? 'new-badge-expiring' : ''}`}>
+                        NEW
+                      </span>
+                    )}
                     <ChannelBadge channel={o.channel} />
                     <CompletenessTag complete={o.completeness === 'Complete'} />
                     {o.duplicateOfId && (
                       <button
                         onClick={() => openDuplicate(o)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-500/15 text-orange-700 dark:text-orange-400 hover:bg-orange-500/25 transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-warning-tint text-warning-text hover:bg-warning-tint transition-colors"
                       >
                         <GitMerge className="h-3 w-3" /> Possible duplicate of {o.duplicateOfId}
                       </button>
@@ -216,17 +261,17 @@ export default function IncomingOrders() {
 
                   {/* Inline missing fields */}
                   {o.completeness === 'Needs Clarification' && o.missingFields && (
-                    <div className="mt-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1.5">
+                    <div className="mt-3 p-3 rounded-md bg-warning-tint border border-warning/30">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-warning-text mb-1.5">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Missing required fields — cannot enter fulfillment
                       </div>
-                      <ul className="text-xs text-amber-900 dark:text-amber-200 space-y-0.5 ml-5 list-disc">
+                      <ul className="text-xs text-warning-text space-y-0.5 ml-5 list-disc">
                         {o.missingFields.map(f => <li key={f}>{f}</li>)}
                       </ul>
                       <button
                         onClick={() => resolveClarification(o)}
-                        className="btn-pharma-outline text-[11px] py-1 px-2 mt-2"
+                        className="btn-pharma-outline text-2xs py-1 px-2 mt-2"
                       >
                         Mark as clarified
                       </button>
@@ -236,7 +281,7 @@ export default function IncomingOrders() {
                   {/* Stock-at-a-glance for line items */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {o.items.map(it => (
-                      <div key={it.product.sku} className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded bg-muted/40">
+                      <div key={it.product.sku} className="flex items-center gap-1.5 text-2xs px-2 py-0.5 rounded bg-muted/40">
                         <span className="font-mono text-muted-foreground">{it.product.sku}</span>
                         <StockBadge product={it.product} compact />
                       </div>
@@ -248,9 +293,9 @@ export default function IncomingOrders() {
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <PriorityTooltip order={o}>
                     <div className="text-right cursor-help">
-                      <div className="text-[10px] uppercase text-muted-foreground tracking-wider">Priority</div>
+                      <div className="text-2xs uppercase text-muted-foreground tracking-wider">Priority</div>
                       <div className="font-mono text-2xl font-bold leading-none">{o.priority.total}</div>
-                      <div className="text-[10px] font-semibold text-muted-foreground mt-0.5">{o.priority.level}</div>
+                      <div className="text-2xs font-semibold text-muted-foreground mt-0.5">{o.priority.level}</div>
                     </div>
                   </PriorityTooltip>
                   <button
@@ -280,26 +325,34 @@ export default function IncomingOrders() {
       />
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>New Incoming Order</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Channel toggles */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Channel</Label>
+              <div className="flex gap-2">
+                {(['WhatsApp', 'Phone', 'Email', 'Walk-in'] as OrderChannel[]).map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, channel: c }))}
+                    className={`flex-1 text-xs py-2 px-3 rounded border transition-all ${form.channel === c ? 'bg-primary text-primary-foreground border-primary font-semibold' : 'border-border text-muted-foreground hover:bg-accent'}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs">Account</Label>
               <Select value={form.accountId} onValueChange={v => setForm(f => ({ ...f, accountId: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {demoAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name} (T{a.tier})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Channel</Label>
-              <Select value={form.channel} onValueChange={v => setForm(f => ({ ...f, channel: v as OrderChannel }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(['EDI','Portal','Phone','WhatsApp','Email'] as OrderChannel[]).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -326,6 +379,41 @@ export default function IncomingOrders() {
               <input type="checkbox" checked={form.isUrgent} onChange={e => setForm(f => ({ ...f, isUrgent: e.target.checked }))} />
               Mark as urgent (STAT)
             </label>
+
+            {/* Pre-submission checks */}
+            {preChecks && (
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <p className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pre-submission checks</p>
+                {[
+                  { label: 'Duplicate detection', ...preChecks.duplicate },
+                  { label: 'Controlled substance', ...preChecks.controlled },
+                  { label: 'Stock availability', ...preChecks.stock },
+                  { label: 'Compliance license', ...preChecks.license },
+                ].map(check => (
+                  <div key={check.label} className="flex items-start gap-2 text-xs">
+                    <span className={`mt-0.5 shrink-0 w-3.5 h-3.5 rounded-full flex items-center justify-center text-2xs font-bold ${check.warn ? 'bg-warning-tint text-warning-text' : 'bg-success-tint text-success-text'}`}>
+                      {check.warn ? '!' : '✓'}
+                    </span>
+                    <div>
+                      <span className="font-medium">{check.label}</span>
+                      <span className="text-muted-foreground ml-1">— {check.msg}</span>
+                    </div>
+                  </div>
+                ))}
+                {preChecks.dupOrder && (
+                  <div className="mt-2 p-2 rounded bg-warning-tint border border-warning/20 text-xs text-warning-text flex items-center justify-between">
+                    <span>Possible duplicate detected</span>
+                    <button
+                      type="button"
+                      onClick={() => { setDupPair([preChecks.dupOrder!, preChecks.dupOrder!]); setDupOpen(true); }}
+                      className="underline text-warning-text ml-2"
+                    >
+                      Compare orders
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <button onClick={() => setNewOpen(false)} className="btn-pharma-outline text-sm">Cancel</button>

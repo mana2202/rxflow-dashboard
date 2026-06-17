@@ -5,7 +5,7 @@ import type { UserRole } from '@/types';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const roles: UserRole[] = ['pharmacy_staff', 'sales_rep', 'operations', 'procurement'];
+const roles: UserRole[] = ['sales_rep', 'operations', 'procurement'];
 
 export function RoleSwitcher() {
   const { currentRole, setRole } = useAuth();
@@ -25,7 +25,7 @@ export function RoleSwitcher() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border border-border bg-card hover:bg-accent transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-md border border-border bg-card hover:bg-accent transition-colors"
       >
         <span className="text-muted-foreground">Viewing as:</span>
         <span className="font-semibold">{roleLabels[currentRole]}</span>

@@ -130,7 +130,7 @@ export default function SettingsPage() {
             </div>
 
             <div className={`mt-6 p-3 rounded text-sm font-mono font-semibold text-center ${
-              totalWeights === 100 ? 'bg-green-50 text-success' : 'bg-red-50 text-danger'
+              totalWeights === 100 ? 'bg-success-tint text-success' : 'bg-danger-tint text-danger'
             }`}>
               Total: {totalWeights} / 100
             </div>
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                       <PriorityBadge score={order.newPriority.total} level={order.newPriority.level} />
                     </div>
                     <p className="text-sm truncate">{order.account.name}</p>
-                    <div className="flex gap-4 text-[11px] text-muted-foreground font-mono mt-1">
+                    <div className="flex gap-4 text-2xs text-muted-foreground font-mono mt-1">
                       <span>U:{order.newPriority.urgency}</span>
                       <span>S:{order.newPriority.slaProximity}</span>
                       <span>K:{order.newPriority.stockRisk}</span>

@@ -1,0 +1,29 @@
+@keyframes inbox-enter {
+  0%   { transform: translateY(-100%); opacity: 0; max-height: 0; }
+  28%  { opacity: 1; }
+  72%  { transform: translateY(2px); max-height: 300px; }
+  100% { transform: translateY(0);   max-height: 300px; }
+}
+.inbox-card-entering {
+  overflow: hidden;
+  animation: inbox-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes new-badge-expire {
+  0%,  80% { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; transform: scale(0.8); }
+}
+.new-badge-expiring {
+  animation: new-badge-expire 600ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inbox-card-entering {
+    animation: none;
+    max-height: none;
+    overflow: visible;
+    opacity: 1;
+    transform: none;
+  }
+  .new-badge-expiring { animation: none; }
+}

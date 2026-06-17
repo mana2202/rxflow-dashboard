@@ -1,0 +1,41 @@
+@keyframes ring-stamp {
+  0%   { opacity: 1; transform: scale(1); }
+  20%  { opacity: 0.3; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.override-ring-stamp {
+  animation: ring-stamp 300ms ease-out;
+}
+
+@keyframes score-stamp-up {
+  0%   { transform: translateY(10px); opacity: 0; }
+  55%  { transform: translateY(-2px); opacity: 1; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+.override-stamp-up {
+  display: inline-block;
+  animation: score-stamp-up 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes score-stamp-down {
+  0%   { transform: translateY(-10px); opacity: 0; }
+  60%  { transform: translateY(1px);   opacity: 1; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+.override-stamp-down {
+  display: inline-block;
+  animation: score-stamp-down 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes log-entry-in {
+  0%   { opacity: 0; transform: translateY(-5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.override-log-enter {
+  animation: log-entry-in 200ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .override-ring-stamp, .override-stamp-up,
+  .override-stamp-down, .override-log-enter { animation: none; }
+}

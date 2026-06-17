@@ -42,7 +42,7 @@ export function DuplicateCompareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+          <DialogTitle className="flex items-center gap-2 text-warning-text">
             <AlertTriangle className="h-4 w-4" /> Possible duplicate detected
           </DialogTitle>
           <p className="text-xs text-muted-foreground">Same customer, similar items, placed within hours via different channels. Review before routing.</p>

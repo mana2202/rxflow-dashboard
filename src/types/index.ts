@@ -1,16 +1,32 @@
 import type { PriorityBreakdown } from '@/utils/priorityScore';
 
-export type UserRole = 'pharmacy_staff' | 'sales_rep' | 'operations' | 'procurement';
+export type UserRole = 'sales_rep' | 'operations' | 'procurement';
 export type ProductType = 'OTC' | 'Controlled' | 'Device';
 export type OrderStatus = 'Incoming' | 'Verified' | 'Picking' | 'Compliance Check' | 'Ready to Ship' | 'Shipped';
 export type PipelineStage = 'Intake' | 'Compliance Check' | 'Fulfillment' | 'Dispatch';
 export type CustomerTier = 1 | 2 | 3;
 export type DEASchedule = 'II' | 'III' | 'IV' | 'V';
-export type OrderChannel = 'WhatsApp' | 'Call' | 'Email' | 'EDI' | 'Portal' | 'Phone';
+export type OrderChannel = 'WhatsApp' | 'Phone' | 'Email' | 'Walk-in';
 export type Completeness = 'Complete' | 'Needs Clarification';
 export type StockState = 'In Stock' | 'Low Stock' | 'At Risk' | 'Out of Stock';
 export type StockConfidence = 'High' | 'Medium' | 'Low';
 export type ComplianceStatus = 'Not Required' | 'Pending' | 'Passed' | 'Blocked';
+
+export type OverrideDirection = 'escalate' | 'deescalate';
+export type OverrideReason = 'client_relationship' | 'stock_emergency' | 'compliance_exception' | 'ops_judgment';
+
+export interface OverrideRecord {
+  id: string;
+  timestamp: string;
+  changedBy: string;
+  fromScore: number;
+  fromLevel: string;
+  toScore: number;
+  toLevel: string;
+  direction: OverrideDirection;
+  reasonCode: OverrideReason;
+  impact: string;
+}
 
 export interface User {
   id: string;
@@ -68,18 +84,23 @@ export interface Order {
   assignedTo: string;
   assignedUser?: User;
   orderDate: string;
+  deliveryDate?: string;
+  deliveryAddress?: string;
   slaDeadline: string;
   slaHoursRemaining: number;
   isUrgent: boolean;
   hasStockRisk: boolean;
   priority: PriorityBreakdown;
   auditLog: AuditEntry[];
+  overrides?: OverrideRecord[];
   channel: OrderChannel;
   completeness: Completeness;
   missingFields?: string[];
   duplicateOfId?: string;
   complianceStatus: ComplianceStatus;
   complianceBlockReason?: string;
+  stockConflict?: boolean;
+  enteredQueueAt?: string;
 }
 
 export interface SLABreach {

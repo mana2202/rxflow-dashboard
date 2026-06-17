@@ -43,8 +43,8 @@ export default function PriorityQueue() {
   }, [search, typeFilter, slaFilter, levelFilter]);
 
   const counts = useMemo(() => {
-    const c = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, ROUTINE: 0 };
-    demoOrders.forEach(o => { c[o.priority.level]++; });
+    const c = { CRITICAL: 0, HIGH: 0, MED: 0, LOW: 0 };
+    demoOrders.forEach(o => { if (o.priority.level in c) (c as any)[o.priority.level]++; });
     return c;
   }, []);
 
@@ -52,7 +52,7 @@ export default function PriorityQueue() {
     <AppLayout title="Priority Queue">
       {/* Summary chips — clickable filters */}
       <div className="flex gap-3 mb-5">
-        {([['CRITICAL', counts.CRITICAL, '🔴'], ['HIGH', counts.HIGH, '🟠'], ['MEDIUM', counts.MEDIUM, '🟡'], ['ROUTINE', counts.ROUTINE, '⚪']] as const).map(([l, c, e]) => (
+        {([['CRITICAL', counts.CRITICAL, '🔴'], ['HIGH', counts.HIGH, '🟠'], ['MED', counts.MED, '🟡'], ['LOW', counts.LOW, '⚪']] as const).map(([l, c, e]) => (
           <button
             key={l}
             onClick={() => setLevelFilter(levelFilter === l ? 'All' : l)}
@@ -129,7 +129,7 @@ export default function PriorityQueue() {
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
                     {order.assignedUser && (
-                      <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xs font-bold flex-shrink-0">
                         {order.assignedUser.initials}
                       </div>
                     )}

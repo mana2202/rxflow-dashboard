@@ -1,0 +1,41 @@
+/* Aging base — border-left-color applied by cardClass; background tints added here */
+.age-fresh   { border-left-color: #E2E4E9; }
+.age-warning { border-left-color: #D4900A; background-color: rgba(212, 144, 10, 0.04); }
+.age-critical { border-left-color: #C3332B; background-color: rgba(195, 51, 43, 0.04); }
+
+.age-critical .aging-timer {
+  animation: aging-pulse 2s ease-in-out infinite;
+}
+@keyframes aging-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+/* FRESH → WARNING live transition */
+@keyframes aging-to-warning {
+  0%   { border-left-color: #E2E4E9; background-color: transparent; border-left-width: 4px; }
+  25%  { border-left-color: #D4900A; border-left-width: 6px; background-color: rgba(212, 144, 10, 0.08); }
+  65%  { border-left-width: 5px; }
+  100% { border-left-color: #D4900A; border-left-width: 4px; background-color: rgba(212, 144, 10, 0.04); }
+}
+.animate-aging-to-warning {
+  animation: aging-to-warning 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* WARNING → CRITICAL live transition */
+@keyframes aging-to-critical {
+  0%   { border-left-color: #C3332B; border-left-width: 4px; background-color: rgba(212, 144, 10, 0.04); }
+  12%  { border-left-width: 10px; background-color: rgba(195, 51, 43, 0.10); }
+  32%  { border-left-width: 12px; }
+  60%  { border-left-width: 6px;  background-color: rgba(195, 51, 43, 0.07); }
+  100% { border-left-width: 4px; border-left-color: #C3332B; background-color: rgba(195, 51, 43, 0.04); }
+}
+.animate-aging-to-critical {
+  animation: aging-to-critical 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aging-to-warning,
+  .animate-aging-to-critical { animation: none; }
+  .age-critical .aging-timer  { animation: none; }
+}

@@ -7,7 +7,11 @@ export function SlaCountdown({ hours }: { hours: number }) {
   const urgent = hours <= 4;
   const warn = hours <= 12;
   return (
-    <span className={`text-xs font-mono font-semibold ${urgent ? 'text-danger' : warn ? 'text-warning' : 'text-muted-foreground'}`}>
+    <span
+      className={`text-xs font-mono font-semibold ${
+        urgent ? 'text-danger' : warn ? 'text-warning' : 'text-muted-foreground'
+      }`}
+    >
       {h}h {m}m
     </span>
   );

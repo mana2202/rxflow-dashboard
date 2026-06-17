@@ -2,82 +2,155 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   RxFlow — aligned to the RxFlow Design System
+   - Color routed through tokens (no raw hex/palette in components)
+   - Brand red (--primary) is SEPARATED from alarm red (--danger)
+   - Semantic lanes: danger / warning / success / info, each with
+     a solid + a tint + an on-tint text shade (light & dark)
+   - Real type scale; DM Sans / DM Mono
+   ============================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 96%;
-    --foreground: 0 0% 4%;
+    /* ---- Surfaces & ink (neutral ramp) ---- */
+    --background: 228 16% 96%;     /* grey-50  app bg */
+    --foreground: 222 14% 12%;     /* grey-900 ink */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card-foreground: 222 14% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 0 78% 50%;
+    --popover-foreground: 222 14% 12%;
+
+    --secondary: 228 12% 95%;      /* grey-100 */
+    --secondary-foreground: 222 14% 12%;
+    --muted: 228 12% 95%;          /* grey-100 inset */
+    --muted-foreground: 220 6% 41%;/* grey-600 secondary text */
+    --accent: 228 16% 96%;
+    --accent-foreground: 222 14% 12%;
+    --border: 223 14% 90%;         /* grey-200 hairline */
+    --border-strong: 0 0% 81%;     /* grey-300 */
+    --input: 223 14% 90%;
+    --radius: 0.75rem;             /* 12px card radius base */
+
+    /* ---- Brand (ACTION) — distinct from alarm ---- */
+    --primary: 4 64% 47%;          /* red-600 #C3332B — primary actions */
+    --primary-hover: 4 66% 36%;    /* red-700 #9B2820 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 4%;
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 42%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 4%;
-    --destructive: 0 78% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 0 78% 50%;
-    --radius: 0.5rem;
+    --ring: 4 64% 47%;
 
-    --success: 142 72% 37%;
-    --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
-    --warning-foreground: 0 0% 100%;
-    --danger: 0 78% 50%;
+    /* ---- Semantic: DANGER (alarm only — breach/blocked/out) ---- */
+    --danger: 4 68% 51%;           /* red-500 #D8392F — slightly more vivid than brand */
     --danger-foreground: 0 0% 100%;
+    --danger-tint: 3 64% 95%;      /* red-50 */
+    --danger-text: 4 65% 29%;      /* red-900 on tint (light) */
+    --danger-text-dark: 4 80% 78%;
+    /* destructive kept as alias for shadcn components */
+    --destructive: 4 68% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --nav-pill-bg: 0 0% 100% / 0.85;
-    --nav-pill-border: 0 0% 88%;
+    /* ---- Semantic: WARNING (amber) ---- */
+    --warning: 39 91% 44%;         /* amber-500 #D4900A */
+    --warning-foreground: 0 0% 100%;
+    --warning-tint: 37 89% 94%;    /* amber-50 */
+    --warning-text: 32 77% 27%;    /* amber-700 */
+    --warning-text-dark: 39 90% 65%;
 
-    --font-display: 'Syne', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
+    /* ---- Semantic: SUCCESS (green) ---- */
+    --success: 149 66% 30%;        /* green-500 #1A7F4B */
+    --success-foreground: 0 0% 100%;
+    --success-tint: 140 43% 93%;   /* green-50 */
+    --success-text: 147 70% 17%;   /* green-700 */
+    --success-text-dark: 150 50% 62%;
 
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.05);
-    --shadow-elevated: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-pill: 0 4px 24px rgba(0,0,0,0.08);
+    /* ---- Semantic: INFO (blue) — Device, informational ---- */
+    --info: 222 66% 49%;           /* blue-500 #2A5ECF */
+    --info-foreground: 0 0% 100%;
+    --info-tint: 222 79% 95%;      /* blue-50 */
+    --info-text: 222 67% 33%;      /* blue-700 */
+    --info-text-dark: 222 80% 78%;
+
+    /* ---- Regulated (Controlled) — ink, NOT red ---- */
+    --regulated: 222 14% 12%;      /* grey-900 ink fill */
+    --regulated-foreground: 0 0% 100%;
+
+    /* ---- Fonts (RxFlow DS) ---- */
+    --font-display: 'DM Sans', system-ui, sans-serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'DM Mono', ui-monospace, monospace;
+
+    /* ---- Type scale ---- */
+    --text-2xs: 11px;   /* smallest allowed — micro labels */
+    --text-xs: 12px;
+    --text-sm: 14px;    /* body default */
+    --text-md: 16px;
+    --text-lg: 20px;    /* section headings */
+    --text-xl: 24px;
+    --text-display: 30px; /* KPI / hero numbers */
+
+    /* ---- Elevation ---- */
+    --shadow-card: 0 0 4px 0 rgba(0,0,0,0.10);
+    --shadow-elevated: 0 1px 2px 0 rgba(0,0,0,0.06), 0 4px 12px -2px rgba(0,0,0,0.10);
+    --shadow-pill: 0 0 12px 0 rgba(0,0,0,0.18);
+
+    --nav-pill-bg: 0 0% 100% / 0.92;
+    --nav-pill-border: 223 14% 90%;
   }
 
   .dark {
-    --background: 0 0% 6%;
+    --background: 222 16% 7%;
     --foreground: 0 0% 94%;
-    --card: 0 0% 10%;
+    --card: 222 14% 11%;
     --card-foreground: 0 0% 94%;
-    --popover: 0 0% 10%;
+    --popover: 222 14% 11%;
     --popover-foreground: 0 0% 94%;
-    --primary: 0 78% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14%;
+
+    --secondary: 222 12% 16%;
     --secondary-foreground: 0 0% 94%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 53%;
-    --accent: 0 0% 14%;
+    --muted: 222 12% 18%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 222 12% 16%;
     --accent-foreground: 0 0% 94%;
-    --destructive: 0 78% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 17%;
-    --input: 0 0% 17%;
-    --ring: 0 78% 50%;
+    --border: 222 10% 20%;
+    --border-strong: 222 8% 28%;
+    --input: 222 10% 20%;
 
-    --success: 142 72% 37%;
-    --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
-    --warning-foreground: 0 0% 100%;
-    --danger: 0 78% 50%;
+    --primary: 4 68% 54%;
+    --primary-hover: 4 70% 62%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 4 68% 54%;
+
+    --danger: 4 72% 58%;
     --danger-foreground: 0 0% 100%;
+    --danger-tint: 4 40% 16%;
+    --danger-text: 4 80% 78%;
 
-    --nav-pill-bg: 0 0% 6% / 0.85;
-    --nav-pill-border: 0 0% 17%;
+    --destructive: 4 72% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
-    --shadow-elevated: 0 4px 12px rgba(0,0,0,0.3);
-    --shadow-pill: 0 4px 24px rgba(0,0,0,0.2);
+    --warning: 39 88% 52%;
+    --warning-foreground: 0 0% 8%;
+    --warning-tint: 38 35% 14%;
+    --warning-text: 39 90% 65%;
+
+    --success: 150 52% 42%;
+    --success-foreground: 0 0% 8%;
+    --success-tint: 150 30% 13%;
+    --success-text: 150 50% 62%;
+
+    --info: 222 72% 62%;
+    --info-foreground: 0 0% 8%;
+    --info-tint: 222 36% 18%;
+    --info-text: 222 80% 78%;
+
+    --regulated: 0 0% 90%;
+    --regulated-foreground: 222 14% 10%;
+
+    --shadow-card: 0 0 4px 0 rgba(0,0,0,0.4);
+    --shadow-elevated: 0 4px 12px rgba(0,0,0,0.45);
+    --shadow-pill: 0 0 16px 0 rgba(0,0,0,0.45);
+
+    --nav-pill-bg: 222 16% 9% / 0.92;
+    --nav-pill-border: 222 10% 20%;
   }
 }
 
@@ -88,148 +161,177 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
     transition: background-color 0.2s, color 0.2s;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
+  ::selection { background: hsl(var(--danger-tint)); color: hsl(var(--danger-text)); }
 }
 
 @layer components {
-  .font-mono {
-    font-family: var(--font-mono);
-  }
-  .font-display {
-    font-family: var(--font-display);
-  }
+  .font-mono { font-family: var(--font-mono); }
+  .font-display { font-family: var(--font-display); }
+
+  /* ---- Surfaces ---- */
   .card-pharma {
-    @apply bg-card border border-border rounded-xl;
+    @apply bg-card border border-border rounded-xl p-6;
     box-shadow: var(--shadow-card);
-    padding: 24px;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
   .card-pharma-compact {
     @apply bg-card border border-border rounded-xl;
     box-shadow: var(--shadow-card);
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
+
+  /* ---- Buttons (radius from scale: 6px) ---- */
   .btn-pharma {
-    @apply inline-flex items-center justify-center font-medium text-sm px-5 py-2.5 bg-primary text-primary-foreground hover:opacity-90 transition-all;
-    border-radius: 4px;
+    @apply inline-flex items-center justify-center gap-1.5 font-medium px-5 py-2.5 bg-primary text-primary-foreground transition-colors;
+    font-size: var(--text-sm);
+    border-radius: 6px;
   }
+  .btn-pharma:hover { background-color: hsl(var(--primary-hover)); }
   .btn-pharma-outline {
-    @apply inline-flex items-center justify-center font-medium text-sm px-5 py-2.5 border border-border bg-card text-foreground hover:bg-accent transition-all;
-    border-radius: 4px;
+    @apply inline-flex items-center justify-center gap-1.5 font-medium px-5 py-2.5 border border-border-strong bg-card text-foreground transition-colors;
+    font-size: var(--text-sm);
+    border-radius: 6px;
   }
+  .btn-pharma-outline:hover { background-color: hsl(var(--muted)); }
+
+  /* ---- Badge base (4px radius, consistent) ---- */
   .pill {
-    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 font-medium rounded;
+    font-size: var(--text-2xs);
+    line-height: 1.4;
   }
-  .pill-otc {
-    @apply pill bg-muted text-muted-foreground;
-  }
-  .pill-controlled {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--danger));
-  }
-  .pill-device {
-    @apply pill text-primary-foreground;
-    background-color: hsl(217 91% 60%);
-  }
-  .pill-schedule {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--danger));
-  }
-  .priority-critical {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--danger));
-  }
-  .priority-high {
-    @apply pill text-primary-foreground;
-    background-color: hsl(var(--warning));
-  }
-  .priority-medium {
-    @apply pill;
-    background-color: hsl(45 93% 47% / 0.15);
-    color: hsl(45 93% 30%);
-  }
-  .dark .priority-medium {
-    background-color: hsl(45 93% 47% / 0.2);
-    color: hsl(45 93% 65%);
-  }
-  .priority-routine {
-    @apply pill bg-muted text-muted-foreground;
-  }
-  .kpi-card {
-    @apply card-pharma;
-  }
+
+  /* Product type — Controlled = ink (regulated, NOT red), Device = info blue, OTC = neutral */
+  .pill-otc        { @apply pill bg-muted text-muted-foreground; }
+  .pill-device     { @apply pill text-primary-foreground; background-color: hsl(var(--info)); }
+  .pill-controlled { @apply pill; background-color: hsl(var(--regulated)); color: hsl(var(--regulated-foreground)); }
+  .pill-schedule   { @apply pill; background-color: hsl(var(--regulated)); color: hsl(var(--regulated-foreground)); }
+
+  /* Priority — single source of truth (used by PriorityBadge) */
+  .priority-critical { @apply pill text-primary-foreground; background-color: hsl(var(--danger)); }
+  .priority-high     { @apply pill; background-color: hsl(var(--warning-tint)); color: hsl(var(--warning-text)); box-shadow: inset 0 0 0 1px hsl(var(--warning)); }
+  .priority-medium   { @apply pill bg-muted text-muted-foreground; box-shadow: inset 0 0 0 1px hsl(var(--border-strong)); }
+  .priority-routine  { @apply pill bg-muted text-muted-foreground; }
+
+  /* ---- Typography helpers ---- */
   .kpi-number {
-    font-family: var(--font-display);
-    font-size: 36px;
+    font-family: var(--font-mono);
+    font-size: var(--text-display);
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   .section-heading {
     font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 600;
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: -0.01em;
     margin-bottom: 16px;
   }
+  .eyebrow {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
 
-  /* Floating pill nav */
+  /* ---- Floating pill nav (robust: wraps, never collides) ---- */
   .nav-pill {
     position: fixed;
-    top: 16px;
+    top: 14px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 100;
+    z-index: 40;
+    max-width: calc(100vw - 360px);   /* leave room for logo (L) + actions (R) */
     background: hsl(var(--nav-pill-bg));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--nav-pill-border));
     border-radius: 999px;
-    padding: 6px 8px;
+    padding: 6px;
     box-shadow: var(--shadow-pill);
     display: flex;
     align-items: center;
-    gap: 4px;
-    transition: background-color 0.2s, border-color 0.2s;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  .nav-pill::-webkit-scrollbar { display: none; }
   .nav-pill-item {
-    @apply inline-flex items-center gap-2 text-sm font-medium transition-all;
-    padding: 8px 20px;
+    @apply inline-flex items-center gap-2 font-medium transition-colors whitespace-nowrap;
+    font-size: var(--text-sm);
+    padding: 8px 16px;
     border-radius: 999px;
     color: hsl(var(--muted-foreground));
     text-decoration: none;
   }
-  .nav-pill-item svg {
-    opacity: 0.6;
-    transition: opacity 0.2s;
-  }
-  .nav-pill-item:hover {
-    color: hsl(var(--foreground));
-  }
-  .nav-pill-item:hover svg {
-    opacity: 1;
-  }
-  .nav-pill-item-active {
+  .nav-pill-item svg { opacity: 0.65; transition: opacity 0.2s; }
+  .nav-pill-item:hover { color: hsl(var(--foreground)); background-color: hsl(var(--muted)); }
+  .nav-pill-item:hover svg { opacity: 1; }
+  .nav-pill-item-active,
+  .nav-pill-item-active:hover {
     background-color: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
   }
-  .nav-pill-item-active svg {
-    opacity: 1;
-  }
-  .nav-pill-item-active:hover {
-    color: hsl(var(--primary-foreground));
-  }
+  .nav-pill-item-active svg { opacity: 1; }
 
-  /* SLA pulse for critical */
-  @keyframes sla-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+  /* ---- Order aging — left border encodes time-in-queue ---- */
+  .age-fresh    { border-left-color: hsl(var(--border)) !important; }
+  .age-warning  { border-left-color: hsl(var(--warning)) !important; }
+  .age-critical { border-left-color: hsl(var(--danger)) !important; }
+
+  /* Calm, single live transition (no infinite loops here) */
+  @keyframes age-warn-pulse {
+    0%   { border-left-width: 3px; border-left-color: hsl(var(--border)); }
+    50%  { border-left-width: 6px; border-left-color: hsl(var(--warning)); }
+    100% { border-left-width: 3px; border-left-color: hsl(var(--warning)); }
   }
-  .sla-pulse {
-    animation: sla-pulse 1.5s ease-in-out infinite;
+  .age-transition-warning { animation: age-warn-pulse 400ms ease-out forwards; }
+
+  /* FIXED: keyframe selectors must be %, not ms (old code used 38ms/320ms) */
+  @keyframes age-crit-pulse {
+    0%   { border-left-width: 3px; border-left-color: hsl(var(--warning)); }
+    40%  { border-left-width: 6px; border-left-color: hsl(var(--danger)); }
+    100% { border-left-width: 3px; border-left-color: hsl(var(--danger)); }
+  }
+  .age-transition-critical { animation: age-crit-pulse 360ms ease-out forwards; }
+
+  /* Interaction feedback (finite) */
+  @keyframes card-shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+  }
+  .card-shake { animation: card-shake 220ms ease-out; }
+
+  @keyframes col-flash {
+    0%,100% { border-top-color: inherit; }
+    50% { border-top-color: hsl(var(--danger)); }
+  }
+  .col-flash { animation: col-flash 400ms ease-out; }
+
+  /* Legacy emphasis hooks — kept for existing markup, now CALM (no infinite pulse).
+     Color is applied by the component; these just hold weight. */
+  .timer-critical { font-weight: 600; }
+  .sla-pulse { font-weight: 600; }
+
+  /* Reduced-motion: respect user preference everywhere */
+  @media (prefers-reduced-motion: reduce) {
+    .age-transition-warning, .age-transition-critical, .card-shake, .col-flash {
+      animation: none !important;
+    }
   }
 }

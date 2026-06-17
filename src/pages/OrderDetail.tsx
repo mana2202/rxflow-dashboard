@@ -10,25 +10,23 @@ import { ChannelBadge } from '@/components/ChannelBadge';
 import { CompletenessTag } from '@/components/CompletenessTag';
 import { ComplianceBadge } from '@/components/ComplianceBadge';
 import { StockBadge, StockConfidenceChip } from '@/components/StockBadge';
+import { ComplianceHardStop } from '@/components/ComplianceHardStop';
+import { PriorityOverridePanel } from '@/components/PriorityOverridePanel';
 import { demoOrders, getStockState } from '@/data/demo';
-import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Split, Clock, ShieldX, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Split, Clock, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
-
-const nextStageLabel: Record<string, string> = {
-  'Incoming': 'Move to Verified',
-  'Verified': 'Move to Picking',
-  'Picking': 'Move to Compliance',
-  'Compliance Check': 'Move to Ready',
-  'Ready to Ship': 'Mark as Shipped',
-  'Shipped': 'Fulfilled',
-};
+import type { OverrideRecord } from '@/types';
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const order = demoOrders.find(o => o.id === id);
+  const { currentUser } = useAuth();
+  const [orders, setOrders] = useState(demoOrders);
+  const order = orders.find(o => o.id === id);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
 
   if (!order) return (
     <AppLayout>
@@ -45,11 +43,41 @@ export default function OrderDetail() {
     const c = i.product.stockConfidence ?? 'High';
     return rank[c] < rank[acc] ? c : acc;
   }, 'High' as 'High' | 'Medium' | 'Low');
+
   const fulfillmentBlocked = hasControlled && order.complianceStatus !== 'Passed';
+  const isOpsManager = currentUser.role === 'operations';
+  const isInventoryPlanner = currentUser.role === 'procurement';
+
+  // complianceIssue is null when in Compliance Check stage (ops manager can advance directly)
+  const complianceIssue: string | null = order.status === 'Compliance Check'
+    ? null
+    : order.complianceStatus === 'Blocked'
+    ? order.complianceBlockReason ?? 'Compliance check failed.'
+    : (order.complianceStatus === 'Pending' && hasControlled)
+    ? 'DEA review pending — controlled substance orders must pass compliance before fulfillment.'
+    : null;
+
+  const nextStageLabel = (() => {
+    const labels: Record<string, string> = {
+      'Incoming': 'Move to Verified',
+      'Verified': hasControlled ? 'Move to Compliance' : 'Move to Fulfillment',
+      'Picking': 'Move to Ready to Ship',
+      'Compliance Check': 'Move to Fulfillment',
+      'Ready to Ship': 'Mark as Shipped',
+      'Shipped': 'Fulfilled',
+    };
+    return labels[order.status] ?? 'Advance';
+  })();
+
+  const handleConfirmOverride = (record: OverrideRecord) => {
+    setOrders(prev => prev.map(o => o.id === order.id
+      ? { ...o, overrides: [...(o.overrides ?? []), record] }
+      : o
+    ));
+  };
 
   return (
     <AppLayout>
-      {/* Back button */}
       <button onClick={() => navigate(-1)} className="btn-pharma-outline gap-1.5 text-xs mb-4">
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
@@ -59,14 +87,14 @@ export default function OrderDetail() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="font-mono text-[22px] font-bold">{order.id}</span>
+              <span className="font-mono text-xl font-bold">{order.id}</span>
               <PriorityBadge score={breakdown.total} level={breakdown.level} />
               <StatusPill status={order.status} />
-              <ChannelBadge channel={order.channel} />
+              <ChannelBadge channel={order.channel} prefix />
               <CompletenessTag complete={order.completeness === 'Complete'} />
               <ComplianceBadge status={order.complianceStatus} />
             </div>
-            <h2 className="text-[28px] font-bold font-display leading-tight">{order.account.name}</h2>
+            <h2 className="text-display font-bold font-display leading-tight">{order.account.name}</h2>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-sm text-muted-foreground">SLA:</span>
               <span className={order.slaHoursRemaining <= 2 ? 'sla-pulse' : ''}>
@@ -77,13 +105,49 @@ export default function OrderDetail() {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {order.status !== 'Shipped' && (
+
+          {/* Action buttons — role gated */}
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {isOpsManager && order.status !== 'Shipped' && (
+              <>
+                <ComplianceHardStop
+                  complianceIssue={complianceIssue}
+                  complianceCleared={order.complianceStatus === 'Passed'}
+                  operatorName={currentUser.name}
+                >
+                  <button
+                    className="btn-pharma gap-1.5"
+                    onClick={() => toast({ title: 'Status updated', description: `${order.id} advanced.` })}
+                  >
+                    {nextStageLabel} <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </ComplianceHardStop>
+                <button
+                  onClick={() => toast({ title: 'Flagged for compliance', description: `${order.id} sent to compliance queue.` })}
+                  className="btn-pharma-outline text-xs gap-1"
+                >
+                  Flag Compliance
+                </button>
+                <button
+                  onClick={() => toast({ title: 'Clarification requested', description: 'Message sent to account.' })}
+                  className="btn-pharma-outline text-xs gap-1"
+                >
+                  Request Clarification
+                </button>
+                <button
+                  onClick={() => setOverrideOpen(!overrideOpen)}
+                  className={`btn-pharma-outline text-xs gap-1 ${overrideOpen ? 'ring-2 ring-primary' : ''}`}
+                >
+                  Override Priority
+                </button>
+              </>
+            )}
+            {isInventoryPlanner && order.hasStockRisk && (
               <button
-                disabled={fulfillmentBlocked && order.status !== 'Compliance Check' && order.status !== 'Verified'}
-                className={`btn-pharma gap-1.5 ${fulfillmentBlocked && order.status !== 'Compliance Check' && order.status !== 'Verified' ? 'opacity-40 cursor-not-allowed' : ''}`}
+                onClick={() => toast({ title: 'PO raised', description: `Purchase order raised for ${order.id}.` })}
+                className="btn-pharma text-xs gap-1"
               >
-                {nextStageLabel[order.status]}
+                Raise PO
               </button>
             )}
             <button className="w-9 h-9 rounded flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
@@ -92,27 +156,17 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Compliance block banner */}
-        {order.complianceStatus === 'Blocked' && (
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-400 text-sm">
-            <ShieldX className="h-4 w-4 mt-0.5 shrink-0" />
-            <div>
-              <div className="font-semibold">Compliance blocked — order cannot proceed to fulfillment</div>
-              <div className="text-xs opacity-80">{order.complianceBlockReason}</div>
-            </div>
-          </div>
-        )}
-        {fulfillmentBlocked && order.complianceStatus === 'Pending' && (
-          <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
-            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <div className="font-semibold">DEA review pending — must pass compliance before fulfillment.</div>
+        {/* Pending compliance note — shown on page load for non-Compliance Check stages */}
+        {fulfillmentBlocked && order.complianceStatus === 'Pending' && order.status !== 'Compliance Check' && (
+          <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-warning-tint border border-warning/30 text-warning-text text-sm">
+            <span className="font-semibold">DEA review pending — must pass compliance before fulfillment.</span>
           </div>
         )}
       </div>
 
-      {/* Stepper */}
+      {/* Pipeline stepper */}
       <div className="card-pharma mb-6">
-        <FulfillmentStepper currentStatus={order.status} hasControlled={hasControlled} />
+        <FulfillmentStepper currentStatus={order.status} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -126,9 +180,8 @@ export default function OrderDetail() {
             </div>
 
             {partial && (
-              <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
-                  <AlertTriangle className="h-4 w-4" />
+              <div className="px-6 py-3 bg-warning-tint border-b border-warning/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm text-warning-text">
                   Partial availability — some lines cannot be fully fulfilled.
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -169,7 +222,7 @@ export default function OrderDetail() {
                       <td className="px-6 py-4">
                         <span>{item.product.name}</span>
                         {item.product.schedule && (
-                          <span className="pill-schedule ml-2 text-[10px]">Sch. {item.product.schedule}</span>
+                          <span className="pill-schedule ml-2 text-2xs">Sch. {item.product.schedule}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right font-mono">{item.qtyOrdered}</td>
@@ -181,7 +234,7 @@ export default function OrderDetail() {
                         <div className="flex flex-col gap-1">
                           <StockBadge product={item.product} showConfidence />
                           {short && state !== 'Out of Stock' && (
-                            <span className="text-[10px] text-amber-700 dark:text-amber-400">Short by {item.qtyOrdered - item.qtyAvailable}</span>
+                            <span className="text-2xs text-warning-text">Short by {item.qtyOrdered - item.qtyAvailable}</span>
                           )}
                         </div>
                       </td>
@@ -212,14 +265,24 @@ export default function OrderDetail() {
                     </div>
                   </div>
                 ))}
+                {(order.overrides ?? []).map((rec, i) => (
+                  <div key={`ov-${i}`} className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-warning mt-2 shrink-0" />
+                    <div>
+                      <p className="text-sm">Priority override by {rec.changedBy}: {rec.fromScore} → {rec.toScore} ({rec.fromLevel} → {rec.toLevel})</p>
+                      <p className="text-xs text-muted-foreground">{rec.reasonCode.replace(/_/g, ' ')} · {rec.impact}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{format(new Date(rec.timestamp), 'MMM dd, HH:mm:ss')}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right panel — 2 cards */}
+        {/* Right panel */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Priority breakdown */}
+          {/* Priority breakdown + override panel */}
           <div className="card-pharma">
             <h3 className="section-heading !text-base mb-4">Priority Score Breakdown</h3>
             <div className="text-center mb-5">
@@ -230,14 +293,14 @@ export default function OrderDetail() {
             </div>
             <div className="space-y-3">
               {[
-                { label: 'Urgency', value: breakdown.urgency, max: 40 },
-                { label: 'SLA Proximity', value: breakdown.slaProximity, max: 30 },
-                { label: 'Stock Risk', value: breakdown.stockRisk, max: 20 },
-                { label: 'Customer Tier', value: breakdown.customerTier, max: 10 },
+                { label: 'SLA Urgency', weight: '40%', value: breakdown.slaUrgency, max: 40 },
+                { label: 'Client Tier', weight: '25%', value: breakdown.clientTier, max: 25 },
+                { label: 'Compliance', weight: '20%', value: breakdown.complianceComplexity, max: 20 },
+                { label: 'Stock Risk', weight: '15%', value: breakdown.stockRisk, max: 15 },
               ].map(item => (
                 <div key={item.label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className="text-muted-foreground">{item.label} <span className="opacity-50">{item.weight}</span></span>
                     <span className="font-mono font-semibold">+{item.value}</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -246,9 +309,20 @@ export default function OrderDetail() {
                 </div>
               ))}
             </div>
+
+            {isOpsManager && overrideOpen && (
+              <PriorityOverridePanel
+                orderId={order.id}
+                currentScore={breakdown.total}
+                currentLevel={breakdown.level}
+                overrides={order.overrides ?? []}
+                operatorName={currentUser.name}
+                onConfirm={handleConfirmOverride}
+              />
+            )}
           </div>
 
-          {/* Order context — merged customer + stock */}
+          {/* Order context */}
           <div className="card-pharma">
             <h3 className="section-heading !text-base mb-4">Order Context</h3>
             <div className="space-y-2 text-sm mb-5">
@@ -274,7 +348,7 @@ export default function OrderDetail() {
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${low ? 'bg-danger' : 'bg-success'}`} style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.product.daysOfSupply}d supply · Reorder at {item.product.reorderPoint}</p>
+                      <p className="text-2xs text-muted-foreground mt-0.5">{item.product.daysOfSupply}d supply · Reorder at {item.product.reorderPoint}</p>
                     </div>
                   );
                 })}

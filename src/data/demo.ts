@@ -1,9 +1,9 @@
 import type { User, Account, Product, Order, OrderLineItem, AuditEntry, SLABreach, DailyVolume, OrderChannel, StockState, StockConfidence, PipelineStage, OrderStatus as OrderStatusT } from '@/types';
 import { computePriorityScore } from '@/utils/priorityScore';
-import { format, subDays, addHours, subHours } from 'date-fns';
+import { format, subDays, addHours, subHours, subMinutes } from 'date-fns';
 
 export const demoUsers: User[] = [
-  { id: 'u1', name: 'Sarah Chen', initials: 'SC', role: 'pharmacy_staff', email: 'sarah@rxflow.com' },
+  { id: 'u1', name: 'Sarah Chen', initials: 'SC', role: 'operations', email: 'sarah@rxflow.com' },
   { id: 'u2', name: 'James Rivera', initials: 'JR', role: 'sales_rep', email: 'james@rxflow.com' },
   { id: 'u3', name: 'Marcus Thompson', initials: 'MT', role: 'operations', email: 'marcus@rxflow.com' },
   { id: 'u4', name: 'Diana Park', initials: 'DP', role: 'procurement', email: 'diana@rxflow.com' },
@@ -18,6 +18,7 @@ export const demoAccounts: Account[] = [
   { id: 'a6', name: 'CVS Health — Region NE', tier: 2, address: '1 CVS Dr, Woonsocket RI', accountManager: 'James Rivera', totalOrdersYTD: 267, avgOrderValue: 8500 },
   { id: 'a7', name: 'Walgreens — Boston Metro', tier: 2, address: '200 Wilmot Rd, Boston MA', accountManager: 'James Rivera', totalOrdersYTD: 245, avgOrderValue: 7200 },
   { id: 'a8', name: 'Smith Family Pharmacy', tier: 3, address: '12 Main St, Quincy MA', accountManager: 'James Rivera', totalOrdersYTD: 45, avgOrderValue: 890 },
+  { id: 'a9', name: 'Apollo Pharma Ltd.', tier: 1, address: '72 Parel, Mumbai 400012', accountManager: 'James Rivera', totalOrdersYTD: 198, avgOrderValue: 15000 },
 ];
 
 export const demoProducts: Product[] = [
@@ -63,9 +64,9 @@ function makeItems(products: Product[], qtys: number[]): OrderLineItem[] {
   }));
 }
 
-function makeAudit(orderId: string, hoursAgo: number, assignee: string, extra: string[] = []): AuditEntry[] {
+function makeAudit(orderId: string, hoursAgo: number, assignee: string, channel: OrderChannel, extra: string[] = []): AuditEntry[] {
   const entries: AuditEntry[] = [
-    { timestamp: fmt(subHours(now, hoursAgo)), action: `Order ${orderId} received via EDI` },
+    { timestamp: fmt(subHours(now, hoursAgo)), action: `Order ${orderId} received via ${channel}` },
     { timestamp: fmt(subHours(now, hoursAgo - 0.5)), action: `Priority score calculated` },
     { timestamp: fmt(subHours(now, hoursAgo - 1)), action: `Assigned to ${assignee}` },
   ];
@@ -74,16 +75,25 @@ function makeAudit(orderId: string, hoursAgo: number, assignee: string, extra: s
 }
 
 function buildOrder(
-  id: string, accountId: string, status: OrderStatusT, products: Product[], qtys: number[],
-  isUrgent: boolean, slaHoursRemaining: number, assignee: string, channel: OrderChannel,
-  orderHoursAgo: number, extraAudit: string[] = []
+  id: string,
+  accountId: string,
+  status: OrderStatusT,
+  products: Product[],
+  qtys: number[],
+  isUrgent: boolean,
+  slaHoursRemaining: number,
+  assignee: string,
+  channel: OrderChannel,
+  orderHoursAgo: number,
+  enteredQueueMinsAgo: number,
+  extraAudit: string[] = []
 ): Order {
   const account = demoAccounts.find(a => a.id === accountId)!;
   const items = makeItems(products, qtys);
   const hasStockRisk = items.some(i => i.product.currentStock < i.product.reorderPoint || i.product.expiringWithin30Days);
-  const priority = computePriorityScore({ isUrgent, slaHoursRemaining, hasStockRisk, customerTier: account.tier });
-  const user = demoUsers.find(u => u.name === assignee);
   const pType: import('@/types').ProductType = products.some(p => p.category === 'Controlled') ? 'Controlled' : products.some(p => p.category === 'Device') ? 'Device' : 'OTC';
+  const priority = computePriorityScore({ isUrgent, slaHoursRemaining, hasStockRisk, customerTier: account.tier, productType: pType });
+  const user = demoUsers.find(u => u.name === assignee);
   const hasControlled = products.some(p => p.category === 'Controlled');
   return {
     id, accountId, account, productType: pType, items, itemCount: items.length,
@@ -92,9 +102,12 @@ function buildOrder(
     orderDate: fmt(subHours(now, orderHoursAgo)),
     slaDeadline: fmt(addHours(now, slaHoursRemaining)),
     slaHoursRemaining, isUrgent, hasStockRisk, priority,
-    auditLog: makeAudit(id, orderHoursAgo, assignee, extraAudit), channel,
+    auditLog: makeAudit(id, orderHoursAgo, assignee, channel, extraAudit),
+    overrides: [],
+    channel,
     completeness: 'Complete',
     complianceStatus: hasControlled ? 'Pending' : 'Not Required',
+    enteredQueueAt: fmt(subMinutes(now, enteredQueueMinsAgo)),
   };
 }
 
@@ -103,42 +116,66 @@ type OrderStatus = import('@/types').OrderStatus;
 const p = demoProducts;
 
 export const demoOrders: Order[] = [
-  // CRITICAL (3)
-  buildOrder('RX-2024-08841', 'a1', 'Compliance Check', [p[8], p[10]], [50, 30], true, 1.5, 'Sarah Chen', 'EDI', 6, ['Stock reserved for 2 of 2 items', 'Compliance check initiated — Schedule II verification', 'DEA CSOS validation pending']),
-  buildOrder('RX-2024-08839', 'a2', 'Picking', [p[9], p[13]], [20, 40], true, 0.5, 'Marcus Thompson', 'Portal', 8, ['Stock reserved — low stock warning on Stimulant Schedule II', 'Escalated: SLA breach imminent']),
-  buildOrder('RX-2024-08837', 'a1', 'Incoming', [p[14], p[16], p[17]], [100, 50, 25], true, -2, 'Sarah Chen', 'Phone', 10, ['STAT order flagged — hospital critical device shortage']),
-  // HIGH (5)
-  buildOrder('RX-2024-08835', 'a6', 'Verified', [p[0], p[1], p[4]], [200, 150, 100], false, 3, 'Marcus Thompson', 'EDI', 12, ['Bulk OTC order — SLA breaching today']),
-  buildOrder('RX-2024-08833', 'a3', 'Picking', [p[11], p[12]], [60, 45], true, 8, 'Sarah Chen', 'Portal', 5, ['Controlled substance — active Rx verified']),
-  buildOrder('RX-2024-08831', 'a7', 'Incoming', [p[2], p[5], p[7]], [300, 200, 150], false, 2.5, 'Marcus Thompson', 'EDI', 4, ['Low stock alert: Cetirizine, Guaifenesin']),
-  buildOrder('RX-2024-08829', 'a4', 'Compliance Check', [p[8], p[23]], [25, 40], true, 12, 'Sarah Chen', 'Portal', 7, ['DEA compliance review queued']),
-  buildOrder('RX-2024-08827', 'a2', 'Verified', [p[15], p[14], p[18]], [80, 60, 30], false, 5, 'Marcus Thompson', 'EDI', 9, ['Device order — SLA proximity alert']),
-  // MEDIUM (8)
-  buildOrder('RX-2024-08825', 'a5', 'Picking', [p[0], p[3]], [100, 80], false, 18, 'Sarah Chen', 'Portal', 14),
-  buildOrder('RX-2024-08823', 'a3', 'Incoming', [p[6], p[4]], [50, 75], false, 24, 'Marcus Thompson', 'EDI', 3),
-  buildOrder('RX-2024-08821', 'a8', 'Verified', [p[20], p[21]], [30, 40], false, 16, 'Sarah Chen', 'Phone', 6),
-  buildOrder('RX-2024-08819', 'a4', 'Ready to Ship', [p[17], p[19]], [20, 15], false, 20, 'Marcus Thompson', 'EDI', 18),
-  buildOrder('RX-2024-08817', 'a6', 'Picking', [p[1], p[5], p[24]], [120, 90, 60], false, 22, 'Sarah Chen', 'EDI', 10),
-  buildOrder('RX-2024-08815', 'a7', 'Incoming', [p[3], p[6]], [60, 45], false, 28, 'Marcus Thompson', 'Portal', 2),
-  buildOrder('RX-2024-08813', 'a1', 'Compliance Check', [p[12], p[13]], [35, 50], false, 14, 'Sarah Chen', 'EDI', 16, ['Routine controlled — compliance queued']),
-  buildOrder('RX-2024-08811', 'a5', 'Picking', [p[22], p[15]], [40, 20], false, 19, 'Marcus Thompson', 'Portal', 8),
-  // ROUTINE (4)
-  buildOrder('RX-2024-08809', 'a8', 'Ready to Ship', [p[0], p[4]], [20, 30], false, 40, 'Sarah Chen', 'Phone', 20),
-  buildOrder('RX-2024-08807', 'a3', 'Shipped', [p[1], p[6]], [50, 60], false, 46, 'Marcus Thompson', 'EDI', 48),
-  buildOrder('RX-2024-08805', 'a5', 'Shipped', [p[3]], [25], false, 44, 'Sarah Chen', 'Portal', 52),
-  buildOrder('RX-2024-08803', 'a4', 'Shipped', [p[20], p[24]], [15, 20], false, 42, 'Marcus Thompson', 'EDI', 56),
+  // CRITICAL — aging CRITICAL (200+ min in queue)
+  buildOrder('RX-2024-08841', 'a1', 'Compliance Check', [p[8], p[10]], [50, 30], true, 1.5, 'Sarah Chen', 'WhatsApp', 6, 240, ['Stock reserved for 2 of 2 items', 'Compliance check initiated — Schedule II verification', 'DEA CSOS validation pending']),
+  buildOrder('RX-2024-08839', 'a2', 'Picking', [p[9], p[13]], [20, 40], true, 0.5, 'Marcus Thompson', 'Phone', 8, 210, ['Stock reserved — low stock warning on Stimulant Schedule II', 'Escalated: SLA breach imminent']),
+  // HIGH — aging WARNING (70-100 min in queue)
+  buildOrder('RX-2024-08837', 'a1', 'Incoming', [p[14], p[16], p[17]], [100, 50, 25], true, -2, 'Sarah Chen', 'WhatsApp', 10, 80, ['STAT order flagged — hospital critical device shortage']),
+  buildOrder('RX-2024-08835', 'a6', 'Verified', [p[0], p[1], p[4]], [200, 150, 100], false, 3, 'Marcus Thompson', 'Phone', 12, 75, ['Bulk OTC order — SLA breaching today']),
+  // HIGH — FRESH
+  buildOrder('RX-2024-08833', 'a3', 'Picking', [p[11], p[12]], [60, 45], true, 8, 'Sarah Chen', 'WhatsApp', 5, 35, ['Controlled substance — active Rx verified']),
+  buildOrder('RX-2024-08831', 'a7', 'Incoming', [p[2], p[5], p[7]], [300, 200, 150], false, 2.5, 'Marcus Thompson', 'WhatsApp', 4, 42, ['Low stock alert: Cetirizine, Guaifenesin']),
+  // HIGH — stock conflict
+  buildOrder('RX-2024-08829', 'a4', 'Compliance Check', [p[8], p[23]], [25, 40], true, 12, 'Sarah Chen', 'Phone', 7, 28, ['DEA compliance review queued']),
+  buildOrder('RX-2024-08827', 'a2', 'Verified', [p[15], p[14], p[18]], [80, 60, 30], false, 5, 'Marcus Thompson', 'Email', 9, 20),
+  // MED
+  buildOrder('RX-2024-08825', 'a5', 'Picking', [p[0], p[3]], [100, 80], false, 18, 'Sarah Chen', 'Phone', 14, 15),
+  buildOrder('RX-2024-08823', 'a3', 'Incoming', [p[6], p[4]], [50, 75], false, 24, 'Marcus Thompson', 'Email', 3, 10),
+  buildOrder('RX-2024-08821', 'a8', 'Verified', [p[20], p[21]], [30, 40], false, 16, 'Sarah Chen', 'Phone', 6, 8),
+  buildOrder('RX-2024-08819', 'a4', 'Ready to Ship', [p[17], p[19]], [20, 15], false, 20, 'Marcus Thompson', 'Email', 18, 25),
+  buildOrder('RX-2024-08817', 'a6', 'Picking', [p[1], p[5], p[24]], [120, 90, 60], false, 22, 'Sarah Chen', 'WhatsApp', 10, 30),
+  buildOrder('RX-2024-08815', 'a7', 'Incoming', [p[3], p[6]], [60, 45], false, 28, 'Marcus Thompson', 'Walk-in', 2, 5),
+  buildOrder('RX-2024-08813', 'a1', 'Compliance Check', [p[12], p[13]], [35, 50], false, 14, 'Sarah Chen', 'WhatsApp', 16, 45, ['Routine controlled — compliance queued']),
+  buildOrder('RX-2024-08811', 'a5', 'Picking', [p[22], p[15]], [40, 20], false, 19, 'Marcus Thompson', 'Phone', 8, 12),
+  // LOW
+  buildOrder('RX-2024-08809', 'a8', 'Ready to Ship', [p[0], p[4]], [20, 30], false, 40, 'Sarah Chen', 'Phone', 20, 50),
+  buildOrder('RX-2024-08807', 'a3', 'Shipped', [p[1], p[6]], [50, 60], false, 46, 'Marcus Thompson', 'Email', 48, 2880),
+  buildOrder('RX-2024-08805', 'a5', 'Shipped', [p[3]], [25], false, 44, 'Sarah Chen', 'Phone', 52, 3120),
+  buildOrder('RX-2024-08803', 'a4', 'Shipped', [p[20], p[24]], [15, 20], false, 42, 'Marcus Thompson', 'Email', 56, 3360),
   // Extra for kanban fill
-  buildOrder('RX-2024-08801', 'a6', 'Ready to Ship', [p[14], p[19]], [10, 12], false, 30, 'Sarah Chen', 'EDI', 24),
-  buildOrder('RX-2024-08799', 'a7', 'Verified', [p[5], p[7]], [80, 60], false, 15, 'Marcus Thompson', 'Portal', 11),
-  buildOrder('RX-2024-08797', 'a1', 'Ready to Ship', [p[17], p[18]], [25, 30], false, 26, 'Sarah Chen', 'EDI', 22),
-  buildOrder('RX-2024-08795', 'a2', 'Incoming', [p[0], p[21], p[24]], [100, 50, 30], false, 36, 'Marcus Thompson', 'EDI', 1),
-  buildOrder('RX-2024-08793', 'a3', 'Shipped', [p[4], p[6]], [40, 50], false, 50, 'Sarah Chen', 'Portal', 60),
-  buildOrder('RX-2024-08791', 'a6', 'Shipped', [p[1], p[3]], [80, 70], false, 48, 'Marcus Thompson', 'EDI', 54),
-  buildOrder('RX-2024-08789', 'a7', 'Shipped', [p[15], p[19]], [20, 15], false, 52, 'Sarah Chen', 'EDI', 58),
-  buildOrder('RX-2024-08787', 'a8', 'Shipped', [p[20]], [10], false, 55, 'Marcus Thompson', 'Phone', 62),
-  buildOrder('RX-2024-08785', 'a4', 'Shipped', [p[22], p[14]], [30, 25], false, 60, 'Sarah Chen', 'EDI', 66),
-  buildOrder('RX-2024-08783', 'a5', 'Incoming', [p[11], p[4]], [20, 50], false, 32, 'Marcus Thompson', 'Portal', 2),
+  buildOrder('RX-2024-08801', 'a6', 'Ready to Ship', [p[14], p[19]], [10, 12], false, 30, 'Sarah Chen', 'WhatsApp', 24, 18),
+  buildOrder('RX-2024-08799', 'a7', 'Verified', [p[5], p[7]], [80, 60], false, 15, 'Marcus Thompson', 'Phone', 11, 22),
+  buildOrder('RX-2024-08797', 'a1', 'Ready to Ship', [p[17], p[18]], [25, 30], false, 26, 'Sarah Chen', 'Walk-in', 22, 35),
+  buildOrder('RX-2024-08795', 'a2', 'Incoming', [p[0], p[21], p[24]], [100, 50, 30], false, 36, 'Marcus Thompson', 'Email', 1, 7),
+  buildOrder('RX-2024-08793', 'a3', 'Shipped', [p[4], p[6]], [40, 50], false, 50, 'Sarah Chen', 'Phone', 60, 3600),
+  buildOrder('RX-2024-08791', 'a6', 'Shipped', [p[1], p[3]], [80, 70], false, 48, 'Marcus Thompson', 'WhatsApp', 54, 3240),
+  buildOrder('RX-2024-08789', 'a7', 'Shipped', [p[15], p[19]], [20, 15], false, 52, 'Sarah Chen', 'Email', 58, 3480),
+  buildOrder('RX-2024-08787', 'a8', 'Shipped', [p[20]], [10], false, 55, 'Marcus Thompson', 'Phone', 62, 3720),
+  buildOrder('RX-2024-08785', 'a4', 'Shipped', [p[22], p[14]], [30, 25], false, 60, 'Sarah Chen', 'WhatsApp', 66, 3960),
+  buildOrder('RX-2024-08783', 'a5', 'Incoming', [p[11], p[4]], [20, 50], false, 32, 'Marcus Thompson', 'Walk-in', 2, 14),
+  // Apollo Pharma — 3 orders for Sales Manager view (different stages)
+  buildOrder('RX-2024-08781', 'a9', 'Incoming', [p[0], p[4]], [50, 30], false, 24, 'Sarah Chen', 'WhatsApp', 3, 18),
+  buildOrder('RX-2024-08779', 'a9', 'Picking', [p[8], p[10]], [20, 15], true, 6, 'Marcus Thompson', 'Phone', 8, 55, ['Controlled — compliance cleared']),
+  buildOrder('RX-2024-08777', 'a9', 'Shipped', [p[14], p[18]], [30, 25], false, 48, 'Sarah Chen', 'Email', 48, 2880),
 ];
+
+// AGING SEED OVERRIDES — precise enteredQueueAt values for demo scenarios
+// RX-2024-08841: CRITICAL (215 min)   RX-2024-08837: CRITICAL (195 min)
+// RX-2024-08835: WARNING (95 min)     RX-2024-08833: WARNING (72 min)
+// RX-2024-08831: FRESH→WARNING showcase (57 min — crosses 60-min threshold ~3 min after load)
+const agingOverrides: Record<string, number> = {
+  'RX-2024-08841': 215,
+  'RX-2024-08837': 195,
+  'RX-2024-08835': 95,
+  'RX-2024-08833': 72,
+  'RX-2024-08831': 57,
+};
+demoOrders.forEach(o => {
+  const mins = agingOverrides[o.id];
+  if (mins !== undefined) {
+    o.enteredQueueAt = fmt(subMinutes(now, mins));
+  }
+});
 
 export const demoSLABreaches: SLABreach[] = [
   { orderId: 'RX-2024-08702', customer: 'Metro General Hospital', productType: 'Controlled', priorityAtBreach: 82, slaDeadline: fmt(subDays(now, 2)), actualFulfillment: fmt(subDays(now, 1.5)), delayHours: 4.2, rootCause: 'Compliance delay' },
@@ -165,26 +202,22 @@ export const demoDailyVolume: DailyVolume[] = Array.from({ length: 30 }, (_, i) 
 });
 
 export const roleLabels: Record<import('@/types').UserRole, string> = {
-  pharmacy_staff: 'Pharmacy Staff',
-  sales_rep: 'Sales Rep',
-  operations: 'Operations Manager',
-  procurement: 'Procurement',
+  sales_rep: 'Sales Manager',
+  operations: 'Ops Manager',
+  procurement: 'Inventory Planner',
 };
 
 export const roleDefaultPaths: Record<import('@/types').UserRole, string> = {
-  pharmacy_staff: '/home',
-  sales_rep: '/home',
+  sales_rep: '/sales',
   operations: '/home',
-  procurement: '/home',
+  procurement: '/inventory',
 };
 
 // ---------- Stock + Intake decoration ----------
 
-// Attach stock confidence + freshness to products (deterministic by index)
 const confidenceCycle: StockConfidence[] = ['High', 'High', 'Medium', 'High', 'Low', 'Medium'];
 demoProducts.forEach((prod, i) => {
   prod.stockConfidence = confidenceCycle[i % confidenceCycle.length];
-  // Hours since last warehouse sync (lower confidence = older data)
   prod.stockLastUpdatedHours =
     prod.stockConfidence === 'High' ? 1 + (i % 3) :
     prod.stockConfidence === 'Medium' ? 6 + (i % 4) :
@@ -198,23 +231,7 @@ export function getStockState(prod: Product): StockState {
   return 'In Stock';
 }
 
-// Override channel diversity + intake metadata on a deterministic subset
-const channelOverrides: Record<string, OrderChannel> = {
-  'RX-2024-08837': 'WhatsApp',
-  'RX-2024-08831': 'WhatsApp',
-  'RX-2024-08833': 'Call',
-  'RX-2024-08823': 'Email',
-  'RX-2024-08815': 'WhatsApp',
-  'RX-2024-08821': 'Call',
-  'RX-2024-08795': 'Email',
-  'RX-2024-08783': 'WhatsApp',
-};
-
-demoOrders.forEach(o => {
-  if (channelOverrides[o.id]) o.channel = channelOverrides[o.id];
-});
-
-// Mark a few intake-stage orders as Needs Clarification with missing fields
+// Mark a few intake-stage orders as Needs Clarification
 const clarifications: Record<string, string[]> = {
   'RX-2024-08831': ['Delivery address', 'PO number'],
   'RX-2024-08815': ['Dosage form (tablet/capsule)', 'Requested SKU ambiguous'],
@@ -228,32 +245,38 @@ demoOrders.forEach(o => {
   }
 });
 
-// Suspected duplicates (same account, near-identical order placed via different channel)
+// Suspected duplicates
 const duplicatePairs: Array<[string, string]> = [
-  ['RX-2024-08823', 'RX-2024-08831'], // Smith / Walgreens — kidding, same items
+  ['RX-2024-08823', 'RX-2024-08831'],
   ['RX-2024-08795', 'RX-2024-08837'],
 ];
 duplicatePairs.forEach(([a, b]) => {
   const oa = demoOrders.find(o => o.id === a);
   const ob = demoOrders.find(o => o.id === b);
-  if (oa && ob) {
-    oa.duplicateOfId = ob.id;
-    ob.duplicateOfId = oa.id;
-  }
+  if (oa && ob) { oa.duplicateOfId = ob.id; ob.duplicateOfId = oa.id; }
 });
 
-// Compliance enforcement examples
+// Compliance overrides
 const complianceOverrides: Record<string, { status: import('@/types').ComplianceStatus; reason?: string }> = {
   'RX-2024-08841': { status: 'Pending' },
-  'RX-2024-08829': { status: 'Blocked', reason: 'DEA license expired (renewal pending)' },
+  'RX-2024-08829': {
+    status: 'Blocked',
+    reason: 'CDSCO License DL-MH-0482-2021 expires in 12 days. Renewal required before dispatch.',
+  },
   'RX-2024-08813': { status: 'Passed' },
-  'RX-2024-08839': { status: 'Passed' }, // already in Picking
+  'RX-2024-08839': { status: 'Passed' },
+  'RX-2024-08779': { status: 'Passed' },
 };
 demoOrders.forEach(o => {
   const c = complianceOverrides[o.id];
-  if (c) {
-    o.complianceStatus = c.status;
-    o.complianceBlockReason = c.reason;
+  if (c) { o.complianceStatus = c.status; o.complianceBlockReason = c.reason; }
+});
+
+// Stock conflicts — RX-2024-08841 and RX-2024-08829 both need CS-2001 (Oxycodone)
+// Combined demand 75 units vs 120 in stock but one is Compliance Blocked
+demoOrders.forEach(o => {
+  if (o.id === 'RX-2024-08841' || o.id === 'RX-2024-08829') {
+    o.stockConflict = true;
   }
 });
 
@@ -261,19 +284,38 @@ demoOrders.forEach(o => {
 export const pipelineStages: PipelineStage[] = ['Intake', 'Compliance Check', 'Fulfillment', 'Dispatch'];
 
 export const stageOfStatus: Record<OrderStatusT, PipelineStage> = {
-  'Incoming': 'Intake',
-  'Verified': 'Compliance Check',
-  'Compliance Check': 'Compliance Check',
-  'Picking': 'Fulfillment',
-  'Ready to Ship': 'Fulfillment',
-  'Shipped': 'Dispatch',
+  'Incoming':        'Intake',
+  'Verified':        'Intake',           // both Incoming and Verified live in Intake column
+  'Compliance Check':'Compliance Check',
+  'Picking':         'Fulfillment',
+  'Ready to Ship':   'Dispatch',         // Ready to Ship and Shipped are both in Dispatch
+  'Shipped':         'Dispatch',
 };
 
 export function nextStatusInStage(stage: PipelineStage): OrderStatusT {
   switch (stage) {
-    case 'Intake': return 'Verified';
-    case 'Compliance Check': return 'Picking';
-    case 'Fulfillment': return 'Ready to Ship';
-    case 'Dispatch': return 'Shipped';
+    case 'Intake':            return 'Verified';
+    case 'Compliance Check':  return 'Picking';
+    case 'Fulfillment':       return 'Ready to Ship';
+    case 'Dispatch':          return 'Shipped';
   }
+}
+
+// ---------- Stock conflict detection ----------
+export function detectStockConflicts(orders: Order[]): Order[] {
+  const skuDemand: Record<string, string[]> = {};
+  orders.filter(o => o.status !== 'Shipped').forEach(o => {
+    o.items.forEach(it => {
+      if (!skuDemand[it.product.sku]) skuDemand[it.product.sku] = [];
+      skuDemand[it.product.sku].push(o.id);
+    });
+  });
+  const conflictedIds = new Set<string>();
+  Object.values(skuDemand).forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => conflictedIds.add(id));
+  });
+  return orders.map(o => ({
+    ...o,
+    stockConflict: o.stockConflict || conflictedIds.has(o.id),
+  }));
 }

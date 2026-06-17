@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { roleDefaultPaths } from "@/data/demo";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import PriorityQueue from "./pages/PriorityQueue";
@@ -14,12 +15,14 @@ import Analytics from "./pages/Analytics";
 import IncomingOrders from "./pages/IncomingOrders";
 import SettingsPage from "./pages/Settings";
 import InventoryDetails from "./pages/InventoryDetails";
+import SalesManagerHome from "./pages/SalesManagerHome";
+import OverrideLog from "./pages/OverrideLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, currentRole } = useAuth();
 
   if (!isLoggedIn) {
     return (
@@ -31,13 +34,15 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/" element={<Navigate to={roleDefaultPaths[currentRole]} replace />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/sales" element={<SalesManagerHome />} />
       <Route path="/queue" element={<PriorityQueue />} />
       <Route path="/pipeline" element={<PipelineBoard />} />
       <Route path="/orders/:id" element={<OrderDetail />} />
       <Route path="/incoming" element={<IncomingOrders />} />
       <Route path="/analytics" element={<Analytics />} />
+      <Route path="/override-log" element={<OverrideLog />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/inventory" element={<InventoryDetails />} />
       <Route path="*" element={<NotFound />} />
